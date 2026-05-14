@@ -380,6 +380,13 @@ h3 {
   font-size: 18px;
 }
 
+.partner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
 .sales-list {
   display: grid;
   gap: 10px;
@@ -597,6 +604,45 @@ h3 {
 
 .text-link:hover {
   background: var(--blue);
+}
+
+.delivery-section {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 242, 0.92)),
+    var(--surface);
+}
+
+.delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.delivery-card {
+  min-height: 230px;
+  border: 1px solid rgba(32, 35, 38, 0.08);
+  border-radius: 8px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 14px 34px rgba(32, 35, 38, 0.08);
+}
+
+.delivery-card span {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: rgba(29, 91, 73, 0.12);
+  color: var(--green);
+  font-weight: 900;
+}
+
+.delivery-card p {
+  margin-bottom: 0;
+  color: var(--muted);
 }
 
 .split-section {
@@ -1108,6 +1154,7 @@ h3 {
 
 @media (max-width: 1120px) {
   .sales-panel,
+  .delivery-grid,
   .hero,
   .split-section,
   .quote-section,
@@ -1189,6 +1236,7 @@ h3 {
   }
 
   .product-card--wide,
+  .delivery-grid,
   .catalog-grid,
   .gallery-grid,
   .hero,
@@ -1298,8 +1346,13 @@ h3 {
 
   .product-card--wide,
   .request-form,
+  .partner-actions,
   .sales-panel {
     grid-template-columns: 1fr;
+  }
+
+  .partner-actions {
+    display: grid;
   }
 
 .modal,

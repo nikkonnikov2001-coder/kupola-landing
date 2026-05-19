@@ -2,6 +2,9 @@
   "name": "kupola-landing",
   "private": true,
   "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "@libsql/client": "^0.15.15"
   }

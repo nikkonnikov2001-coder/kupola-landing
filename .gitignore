@@ -1,4 +1,6 @@
 .vercel
+.env
+.env.*
 slice.txt
 node_modules
 data/*.sqlite

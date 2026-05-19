@@ -3,6 +3,7 @@ const http = require('node:http');
 const path = require('node:path');
 
 const apiHandlers = {
+  '/api/broadcast': require('./api/broadcast'),
   '/api/export': require('./api/export'),
   '/api/lead': require('./api/lead'),
   '/api/leads': require('./api/leads'),

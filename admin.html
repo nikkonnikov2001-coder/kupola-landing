@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Заявки и статистика</title>
+    <title>Заявки, статистика и рассылки</title>
     <link rel="stylesheet" href="assets/landing.css?v=24">
     <style>
       .admin-page {
@@ -12,18 +12,21 @@
         padding: 32px 20px 56px;
       }
 
-      .admin-panel {
+      .admin-panel,
+      .broadcast-actions {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto auto;
         gap: 12px;
         margin: 24px 0;
       }
 
-      .admin-panel input {
+      .admin-panel input,
+      .broadcast-card textarea {
         min-height: 44px;
         padding: 10px 12px;
         border: 1px solid var(--line);
         border-radius: 6px;
+        font: inherit;
       }
 
       .admin-grid {
@@ -34,14 +37,16 @@
       }
 
       .admin-card,
-      .admin-table-wrap {
+      .admin-table-wrap,
+      .broadcast-card {
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 8px;
         box-shadow: var(--shadow);
       }
 
-      .admin-card {
+      .admin-card,
+      .broadcast-card {
         padding: 18px;
       }
 
@@ -50,7 +55,8 @@
         font-size: 28px;
       }
 
-      .admin-card span {
+      .admin-card span,
+      .broadcast-note {
         color: var(--muted);
       }
 
@@ -81,8 +87,58 @@
         min-height: 24px;
       }
 
+      .broadcast-card {
+        margin: 28px 0;
+      }
+
+      .broadcast-card h2 {
+        margin-top: 0;
+      }
+
+      .broadcast-card textarea {
+        display: block;
+        width: 100%;
+        min-height: 140px;
+        resize: vertical;
+      }
+
+      .broadcast-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .broadcast-list {
+        display: grid;
+        gap: 8px;
+        max-height: 320px;
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .broadcast-list a {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .broadcast-list small {
+        color: var(--muted);
+      }
+
       @media (max-width: 720px) {
-        .admin-panel {
+        .admin-panel,
+        .broadcast-actions,
+        .broadcast-links {
           grid-template-columns: 1fr;
         }
       }
@@ -91,8 +147,8 @@
   <body>
     <main class="admin-page">
       <a class="text-link" href="index.html">← На сайт</a>
-      <h1>Заявки и статистика</h1>
-      <p>Введите админ-токен, чтобы загрузить статистику и выгрузить базу заявок в CSV.</p>
+      <h1>Заявки, статистика и рассылки</h1>
+      <p>Введите админ-токен, чтобы загрузить статистику, выгрузить базу заявок и сделать рассылку.</p>
 
       <div class="admin-panel">
         <input id="adminToken" type="password" placeholder="Админ-токен">
@@ -103,6 +159,32 @@
       <p class="admin-status form-status" id="adminStatus" role="status" aria-live="polite"></p>
 
       <section class="admin-grid" id="statsCards"></section>
+
+      <section class="broadcast-card" aria-labelledby="broadcastTitle">
+        <h2 id="broadcastTitle">Рассылка по базе</h2>
+        <p class="broadcast-note">
+          Автоотправка через Telegram работает только по клиентам, которые уже запускали бота.
+          Для остальных контактов админка собирает готовые ссылки WhatsApp и Telegram.
+        </p>
+        <textarea id="broadcastMessage" placeholder="Текст рассылки"></textarea>
+        <div class="broadcast-actions">
+          <button class="button button--secondary" type="button" id="loadBroadcastBase">Собрать базу</button>
+          <button class="button button--primary" type="button" id="sendBroadcast">Отправить через бота</button>
+          <button class="button button--secondary" type="button" id="copyBroadcastText">Скопировать текст</button>
+        </div>
+        <p class="admin-status form-status" id="broadcastStatus" role="status" aria-live="polite"></p>
+        <section class="admin-grid" id="broadcastCards"></section>
+        <div class="broadcast-links">
+          <div>
+            <h3>WhatsApp</h3>
+            <div class="broadcast-list" id="whatsappLinks"></div>
+          </div>
+          <div>
+            <h3>Telegram</h3>
+            <div class="broadcast-list" id="telegramLinks"></div>
+          </div>
+        </div>
+      </section>
 
       <section class="admin-table-wrap">
         <table class="admin-table">
@@ -127,6 +209,11 @@
       const status = document.querySelector('#adminStatus');
       const statsCards = document.querySelector('#statsCards');
       const leadsBody = document.querySelector('#leadsBody');
+      const broadcastMessage = document.querySelector('#broadcastMessage');
+      const broadcastStatus = document.querySelector('#broadcastStatus');
+      const broadcastCards = document.querySelector('#broadcastCards');
+      const whatsappLinks = document.querySelector('#whatsappLinks');
+      const telegramLinks = document.querySelector('#telegramLinks');
       const savedToken = localStorage.getItem('leadsAdminToken');
       if (savedToken) tokenInput.value = savedToken;
 
@@ -147,6 +234,41 @@
         return td;
       }
 
+      function renderCards(container, items) {
+        container.innerHTML = '';
+        items.forEach(([label, value]) => {
+          const card = document.createElement('article');
+          card.className = 'admin-card';
+          card.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
+          container.append(card);
+        });
+      }
+
+      function renderContactLinks(container, links, emptyText) {
+        container.innerHTML = '';
+        if (!links.length) {
+          container.textContent = emptyText;
+          return;
+        }
+
+        links.slice(0, 100).forEach((contact) => {
+          const link = document.createElement('a');
+          link.href = contact.url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          const title = contact.name || contact.telegram || contact.phone || 'Контакт';
+          const meta = contact.product || contact.lastLeadAt || '';
+          link.innerHTML = `<span>${title}</span><small>${meta}</small>`;
+          container.append(link);
+        });
+
+        if (links.length > 100) {
+          const note = document.createElement('small');
+          note.textContent = `Показаны первые 100 из ${links.length}. Полная база доступна в CSV.`;
+          container.append(note);
+        }
+      }
+
       async function loadDashboard() {
         status.textContent = 'Загружаем данные...';
         status.classList.remove('is-error');
@@ -164,17 +286,12 @@
           if (!leadsResponse.ok || !leadsPayload.ok) throw new Error(leadsPayload.error || 'Ошибка заявок');
 
           const stats = statsPayload.stats;
-          statsCards.innerHTML = '';
-          [
+          renderCards(statsCards, [
             ['Всего заявок', stats.total],
             ['Сегодня', stats.today],
+            ['Клиентов в Telegram-боте', stats.botUsers || 0],
             ['Товаров в статистике', stats.byProduct.length],
-          ].forEach(([label, value]) => {
-            const card = document.createElement('article');
-            card.className = 'admin-card';
-            card.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
-            statsCards.append(card);
-          });
+          ]);
 
           leadsBody.innerHTML = '';
           leadsPayload.leads.forEach((lead) => {
@@ -198,7 +315,79 @@
         }
       }
 
+      async function loadBroadcastBase() {
+        broadcastStatus.textContent = 'Собираем базу рассылки...';
+        broadcastStatus.classList.remove('is-error');
+
+        try {
+          const response = await fetch(authUrl('/api/broadcast'));
+          const payload = await response.json();
+          if (!response.ok || !payload.ok) throw new Error(payload.error || 'Ошибка базы рассылки');
+
+          renderCards(broadcastCards, [
+            ['Авторассылка через бота', payload.counts.botUsers],
+            ['WhatsApp-контакты', payload.counts.phones],
+            ['Telegram username', payload.counts.telegramUsernames],
+          ]);
+          renderContactLinks(
+            whatsappLinks,
+            payload.recipients.phones.map((contact) => ({ ...contact, url: contact.whatsappUrl })),
+            'В базе нет телефонов для WhatsApp.'
+          );
+          renderContactLinks(
+            telegramLinks,
+            payload.recipients.telegramUsernames,
+            'В базе нет Telegram username.'
+          );
+          broadcastStatus.textContent = 'База рассылки собрана.';
+        } catch (error) {
+          broadcastStatus.textContent = error.message || 'Не удалось собрать базу рассылки.';
+          broadcastStatus.classList.add('is-error');
+        }
+      }
+
+      async function sendBroadcast() {
+        const message = broadcastMessage.value.trim();
+        if (!message) {
+          broadcastStatus.textContent = 'Введите текст рассылки.';
+          broadcastStatus.classList.add('is-error');
+          return;
+        }
+
+        broadcastStatus.textContent = 'Отправляем рассылку через Telegram-бота...';
+        broadcastStatus.classList.remove('is-error');
+
+        try {
+          const response = await fetch(authUrl('/api/broadcast'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload.ok) throw new Error(payload.error || 'Ошибка отправки');
+
+          renderCards(broadcastCards, [
+            ['Отправлено через бота', payload.sentCount],
+            ['Ошибок отправки', payload.failedCount],
+            ['Целей в боте', payload.targetCount],
+          ]);
+          renderContactLinks(whatsappLinks, payload.manualLinks.whatsapp, 'В базе нет телефонов для WhatsApp.');
+          renderContactLinks(telegramLinks, payload.manualLinks.telegram, 'В базе нет Telegram username.');
+          broadcastStatus.textContent = 'Рассылка выполнена. Для WhatsApp и Telegram username используйте готовые ссылки ниже.';
+        } catch (error) {
+          broadcastStatus.textContent = error.message || 'Не удалось отправить рассылку.';
+          broadcastStatus.classList.add('is-error');
+        }
+      }
+
       document.querySelector('#loadStats').addEventListener('click', loadDashboard);
+      document.querySelector('#loadBroadcastBase').addEventListener('click', loadBroadcastBase);
+      document.querySelector('#sendBroadcast').addEventListener('click', sendBroadcast);
+      document.querySelector('#copyBroadcastText').addEventListener('click', async () => {
+        await navigator.clipboard.writeText(broadcastMessage.value.trim());
+        broadcastStatus.textContent = 'Текст рассылки скопирован.';
+        broadcastStatus.classList.remove('is-error');
+      });
       document.querySelector('#downloadCsv').addEventListener('click', () => {
         window.location.href = authUrl('/api/export?limit=1000');
       });

@@ -3,6 +3,7 @@ const {
   sendTelegramMessage,
   sendTelegramMessageToRecipients,
 } = require('./_telegram');
+const { saveBotUser } = require('./_db');
 
 function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') {
@@ -89,6 +90,12 @@ async function replyStart(message) {
 }
 
 async function handleMessage(message) {
+  try {
+    await saveBotUser(message);
+  } catch (error) {
+    console.error(error);
+  }
+
   const text = cleanValue(message.text || message.caption);
 
   if (text.startsWith('/start') || text.startsWith('/help')) {

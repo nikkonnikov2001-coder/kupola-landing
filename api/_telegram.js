@@ -24,15 +24,20 @@ function getRecipientChatIds() {
 
 async function sendTelegramMessage(chatId, text, options = {}) {
   const token = getBotToken();
+  const body = {
+    chat_id: chatId,
+    text,
+    disable_web_page_preview: true,
+  };
+
+  if (options.parseMode !== null) {
+    body.parse_mode = options.parseMode || 'HTML';
+  }
+
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: options.parseMode || 'HTML',
-      disable_web_page_preview: true,
-    }),
+    body: JSON.stringify(body),
   });
 
   const payload = await response.json();

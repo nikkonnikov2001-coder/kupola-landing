@@ -7,6 +7,7 @@ const apiHandlers = {
   '/api/lead': require('./api/lead'),
   '/api/leads': require('./api/leads'),
   '/api/stats': require('./api/stats'),
+  '/api/telegram-relay': require('./api/telegram-relay'),
   '/api/telegram-webhook': require('./api/telegram-webhook'),
 };
 

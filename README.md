@@ -42,6 +42,8 @@
 - `TELEGRAM_CHAT_IDS` — дополнительные получатели заявок через запятую.
 - `TELEGRAM_WEBHOOK_SECRET` — секрет webhook для Telegram.
 - `TELEGRAM_PROXY_URL` — HTTP/HTTPS прокси для исходящих запросов к Telegram, формат `http://user:password@host:port`.
+- `LEAD_RELAY_URL` — резервный Vercel endpoint для отправки заявки в Telegram, если VPS не имеет исходящего доступа к `api.telegram.org`.
+- `LEAD_RELAY_SECRET` / `TELEGRAM_RELAY_SECRET` — общий секрет между VPS и Vercel relay.
 - `DATABASE_URL` и `DATABASE_AUTH_TOKEN` — внешний SQLite/libSQL, если понадобится вместо локального файла.
 
 ## Админка

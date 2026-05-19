@@ -31,8 +31,8 @@ function readJsonBody(req) {
   });
 }
 
-function cleanValue(value) {
-  return String(value || '').trim().slice(0, MAX_FIELD_LENGTH);
+function cleanValue(value, maxLength = MAX_FIELD_LENGTH) {
+  return String(value || '').trim().slice(0, maxLength);
 }
 
 function escapeHtml(value) {
@@ -44,7 +44,7 @@ function escapeHtml(value) {
 }
 
 function normalizeTelegram(value) {
-  const text = cleanValue(value);
+  const text = cleanValue(value, 100);
   if (!text) return '';
 
   const usernameMatch = text.match(/@?([a-zA-Z0-9_]{5,32})/);
@@ -62,15 +62,15 @@ function formatTelegramLink(value) {
 }
 
 function buildMessage(data) {
-  const leadId = cleanValue(data.leadId);
-  const type = cleanValue(data.type) || 'Заявка с сайта';
-  const product = cleanValue(data.product) || 'Не указан';
-  const name = cleanValue(data.name) || 'Не указано';
-  const phone = cleanValue(data.phone) || 'Не указан';
-  const email = cleanValue(data.email);
-  const telegram = cleanValue(data.telegram);
+  const leadId = cleanValue(data.leadId, 100);
+  const type = cleanValue(data.type, 200) || 'Заявка с сайта';
+  const product = cleanValue(data.product, 300) || 'Не указан';
+  const name = cleanValue(data.name, 200) || 'Не указано';
+  const phone = cleanValue(data.phone, 100) || 'Не указан';
+  const email = cleanValue(data.email, 200);
+  const telegram = cleanValue(data.telegram, 100);
   const message = cleanValue(data.message) || 'Без комментария';
-  const page = cleanValue(data.page) || 'Не указана';
+  const page = cleanValue(data.page, 500) || 'Не указана';
 
   return [
     '<b>Новая заявка с сайта</b>',
@@ -92,6 +92,70 @@ function buildMessage(data) {
     .join('\n');
 }
 
+function getRelayConfig() {
+  return {
+    secret: cleanValue(process.env.LEAD_RELAY_SECRET || process.env.TELEGRAM_RELAY_SECRET, 500),
+    url: cleanValue(process.env.LEAD_RELAY_URL, 500),
+  };
+}
+
+async function postLeadRelay(text) {
+  const relay = getRelayConfig();
+  if (!relay.url) {
+    throw new Error('Lead relay is not configured');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch(relay.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(relay.secret ? { 'X-Relay-Secret': relay.secret } : {}),
+      },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message || payload.error || `Relay returned ${response.status}`);
+    }
+
+    return {
+      sent: Number(payload.sent || 1),
+      via: 'relay',
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function deliverLeadMessage(text) {
+  let relayError = '';
+  if (getRelayConfig().url) {
+    try {
+      return await postLeadRelay(text);
+    } catch (error) {
+      relayError = error.message;
+      console.error(error);
+    }
+  }
+
+  try {
+    const telegramResults = await sendTelegramMessageToRecipients(text);
+    return {
+      sent: telegramResults.length,
+      via: 'direct',
+    };
+  } catch (error) {
+    const message = relayError ? `Relay failed: ${relayError}; direct failed: ${error.message}` : error.message;
+    throw new Error(message);
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -101,8 +165,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const data = await readJsonBody(req);
-    const name = cleanValue(data.name);
-    const phone = cleanValue(data.phone);
+    const name = cleanValue(data.name, 200);
+    const phone = cleanValue(data.phone, 100);
 
     if (!name || !phone) {
       res.status(400).json({ ok: false, error: 'Name and phone are required' });
@@ -121,10 +185,12 @@ module.exports = async function handler(req, res) {
 
     let telegramSent = 0;
     let telegramError = '';
+    let telegramVia = '';
 
     try {
-      const telegramResults = await sendTelegramMessageToRecipients(buildMessage({ ...data, leadId }));
-      telegramSent = telegramResults.length;
+      const delivery = await deliverLeadMessage(buildMessage({ ...data, leadId }));
+      telegramSent = delivery.sent;
+      telegramVia = delivery.via;
     } catch (deliveryError) {
       telegramError = deliveryError.message;
       console.error(deliveryError);
@@ -139,6 +205,7 @@ module.exports = async function handler(req, res) {
       leadId,
       databaseSaved,
       telegramSent,
+      telegramVia,
       telegramError,
     });
   } catch (error) {

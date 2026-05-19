@@ -35,13 +35,11 @@ function cleanValue(value, maxLength = MAX_MESSAGE_LENGTH) {
   return String(value || '').trim().slice(0, maxLength);
 }
 
-function buildManualLinks(recipients, message) {
-  const encoded = encodeURIComponent(message);
-
+function buildManualLinks(recipients) {
   return {
-    whatsapp: recipients.phones.map((recipient) => ({
+    max: recipients.phones.map((recipient) => ({
       ...recipient,
-      url: `${recipient.whatsappUrl}?text=${encoded}`,
+      url: `tel:${recipient.maxContact || recipient.phone}`,
     })),
     telegram: recipients.telegramUsernames.map((recipient) => ({
       ...recipient,
@@ -117,7 +115,7 @@ module.exports = async function handler(req, res) {
       sentCount,
       failedCount,
       targetCount: recipients.botUsers.length,
-      manualLinks: buildManualLinks(recipients, message),
+      manualLinks: buildManualLinks(recipients),
       telegramResults,
     });
   } catch (error) {

@@ -92,6 +92,34 @@ function buildMessage(data) {
     .join('\n');
 }
 
+async function relayLead(data) {
+  const relayUrl = cleanValue(process.env.LEAD_RELAY_URL || process.env.TELEGRAM_RELAY_URL);
+  if (!relayUrl) {
+    return { ok: false, skipped: true };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(relayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    return {
+      ok: response.ok && payload.ok !== false,
+      status: response.status,
+      payload,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -119,8 +147,37 @@ module.exports = async function handler(req, res) {
       console.error(databaseError);
     }
 
-    const telegramResults = await sendTelegramMessageToRecipients(buildMessage({ ...data, leadId }));
-    res.status(200).json({ ok: true, leadId, databaseSaved, telegramSent: telegramResults.length });
+    let telegramSent = 0;
+    let telegramRelayed = false;
+    let telegramError = '';
+
+    try {
+      const telegramResults = await sendTelegramMessageToRecipients(buildMessage({ ...data, leadId }));
+      telegramSent = telegramResults.length;
+    } catch (deliveryError) {
+      telegramError = deliveryError.message;
+      console.error(deliveryError);
+
+      try {
+        const relayResult = await relayLead(data);
+        telegramRelayed = Boolean(relayResult.ok);
+      } catch (relayError) {
+        console.error(relayError);
+      }
+    }
+
+    if (!databaseSaved && !telegramSent && !telegramRelayed) {
+      throw new Error(telegramError || 'Lead was not saved or delivered');
+    }
+
+    res.status(200).json({
+      ok: true,
+      leadId,
+      databaseSaved,
+      telegramSent,
+      telegramRelayed,
+      telegramError: telegramRelayed ? '' : telegramError,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({

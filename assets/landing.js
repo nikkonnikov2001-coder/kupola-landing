@@ -82,7 +82,7 @@ async function sendLead(form, type) {
     status.textContent = 'Заявка отправлена. Мы свяжемся с вами.';
     form.reset();
   } catch (error) {
-    status.textContent = 'Не удалось отправить заявку. Позвоните нам или напишите в WhatsApp.';
+    status.textContent = 'Не удалось отправить заявку. Позвоните нам или напишите в мессенджер МАКС.';
     status.classList.add('is-error');
     console.error(error);
   } finally {

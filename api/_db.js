@@ -202,7 +202,7 @@ async function getBroadcastRecipients(limit = 5000) {
         name: existing?.name || lead.name || '',
         phone: existing?.phone || lead.phone || phoneKey,
         product: existing?.product || lead.product || '',
-        whatsappUrl: `https://wa.me/${phoneKey}`,
+        maxContact: phoneKey,
       });
     }
 

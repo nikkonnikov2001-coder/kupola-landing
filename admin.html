@@ -164,7 +164,7 @@
         <h2 id="broadcastTitle">Рассылка по базе</h2>
         <p class="broadcast-note">
           Автоотправка через Telegram работает только по клиентам, которые уже запускали бота.
-          Для остальных контактов админка собирает готовые ссылки WhatsApp и Telegram.
+          Для остальных контактов админка собирает контакты для мессенджера МАКС и ссылки Telegram.
         </p>
         <textarea id="broadcastMessage" placeholder="Текст рассылки"></textarea>
         <div class="broadcast-actions">
@@ -176,8 +176,8 @@
         <section class="admin-grid" id="broadcastCards"></section>
         <div class="broadcast-links">
           <div>
-            <h3>WhatsApp</h3>
-            <div class="broadcast-list" id="whatsappLinks"></div>
+            <h3>МАКС</h3>
+            <div class="broadcast-list" id="maxLinks"></div>
           </div>
           <div>
             <h3>Telegram</h3>
@@ -212,7 +212,7 @@
       const broadcastMessage = document.querySelector('#broadcastMessage');
       const broadcastStatus = document.querySelector('#broadcastStatus');
       const broadcastCards = document.querySelector('#broadcastCards');
-      const whatsappLinks = document.querySelector('#whatsappLinks');
+      const maxLinks = document.querySelector('#maxLinks');
       const telegramLinks = document.querySelector('#telegramLinks');
       const savedToken = localStorage.getItem('leadsAdminToken');
       if (savedToken) tokenInput.value = savedToken;
@@ -326,13 +326,13 @@
 
           renderCards(broadcastCards, [
             ['Авторассылка через бота', payload.counts.botUsers],
-            ['WhatsApp-контакты', payload.counts.phones],
+            ['Контакты для МАКС', payload.counts.phones],
             ['Telegram username', payload.counts.telegramUsernames],
           ]);
           renderContactLinks(
-            whatsappLinks,
-            payload.recipients.phones.map((contact) => ({ ...contact, url: contact.whatsappUrl })),
-            'В базе нет телефонов для WhatsApp.'
+            maxLinks,
+            payload.recipients.phones.map((contact) => ({ ...contact, url: `tel:${contact.maxContact || contact.phone}` })),
+            'В базе нет телефонов для МАКС.'
           );
           renderContactLinks(
             telegramLinks,
@@ -371,9 +371,9 @@
             ['Ошибок отправки', payload.failedCount],
             ['Целей в боте', payload.targetCount],
           ]);
-          renderContactLinks(whatsappLinks, payload.manualLinks.whatsapp, 'В базе нет телефонов для WhatsApp.');
+          renderContactLinks(maxLinks, payload.manualLinks.max, 'В базе нет телефонов для МАКС.');
           renderContactLinks(telegramLinks, payload.manualLinks.telegram, 'В базе нет Telegram username.');
-          broadcastStatus.textContent = 'Рассылка выполнена. Для WhatsApp и Telegram username используйте готовые ссылки ниже.';
+          broadcastStatus.textContent = 'Рассылка выполнена. Для МАКС и Telegram username используйте контакты ниже.';
         } catch (error) {
           broadcastStatus.textContent = error.message || 'Не удалось отправить рассылку.';
           broadcastStatus.classList.add('is-error');

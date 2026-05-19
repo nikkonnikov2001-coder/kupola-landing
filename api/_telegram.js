@@ -24,6 +24,8 @@ function getRecipientChatIds() {
 
 async function sendTelegramMessage(chatId, text, options = {}) {
   const token = getBotToken();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(options.timeoutMs || 5000));
   const body = {
     chat_id: chatId,
     text,
@@ -34,11 +36,17 @@ async function sendTelegramMessage(chatId, text, options = {}) {
     body.parse_mode = options.parseMode || 'HTML';
   }
 
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let response;
+  try {
+    response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const payload = await response.json();
   if (!payload.ok) {

@@ -92,34 +92,6 @@ function buildMessage(data) {
     .join('\n');
 }
 
-async function relayLead(data) {
-  const relayUrl = cleanValue(process.env.LEAD_RELAY_URL || process.env.TELEGRAM_RELAY_URL);
-  if (!relayUrl) {
-    return { ok: false, skipped: true };
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
-  try {
-    const response = await fetch(relayUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    });
-    const payload = await response.json().catch(() => ({}));
-
-    return {
-      ok: response.ok && payload.ok !== false,
-      status: response.status,
-      payload,
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -148,7 +120,6 @@ module.exports = async function handler(req, res) {
     }
 
     let telegramSent = 0;
-    let telegramRelayed = false;
     let telegramError = '';
 
     try {
@@ -157,16 +128,9 @@ module.exports = async function handler(req, res) {
     } catch (deliveryError) {
       telegramError = deliveryError.message;
       console.error(deliveryError);
-
-      try {
-        const relayResult = await relayLead(data);
-        telegramRelayed = Boolean(relayResult.ok);
-      } catch (relayError) {
-        console.error(relayError);
-      }
     }
 
-    if (!databaseSaved && !telegramSent && !telegramRelayed) {
+    if (!databaseSaved && !telegramSent) {
       throw new Error(telegramError || 'Lead was not saved or delivered');
     }
 
@@ -175,8 +139,7 @@ module.exports = async function handler(req, res) {
       leadId,
       databaseSaved,
       telegramSent,
-      telegramRelayed,
-      telegramError: telegramRelayed ? '' : telegramError,
+      telegramError,
     });
   } catch (error) {
     console.error(error);

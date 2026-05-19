@@ -1,6 +1,18 @@
 # Kupola Landing
 
-Статический сайт-каталог для минаретов, куполов, полумесяцев, листов и комплектующих.
+Статический сайт-каталог с Node.js API для заявок, админки и Telegram-бота.
+
+## Продакшн
+
+Рабочий сервер: `http://5.42.99.128/`
+
+Приложение на сервере:
+
+- каталог: `/var/www/kupola-landing`
+- сервис: `kupola-landing.service`
+- env-файл: `/etc/kupola-landing.env`
+- база заявок: `/var/www/kupola-landing/data/leads.sqlite`
+- nginx проксирует сайт на `127.0.0.1:3000`
 
 ## Структура
 
@@ -8,32 +20,28 @@
 - `*-minaret.html`, `crescent-*.html`, `spherical-*.html` — страницы товаров.
 - `videos.html` — страница видео.
 - `admin.html` — закрытая страница статистики и выгрузки заявок.
-- `api/lead.js` — прием заявки, сохранение в SQLite/libSQL и отправка в Telegram.
+- `server.js` — Node.js сервер для VPS.
+- `api/lead.js` — прием заявки, сохранение в SQLite и попытка отправки в Telegram.
 - `api/leads.js` — список заявок в JSON.
 - `api/stats.js` — статистика заявок.
 - `api/export.js` — выгрузка заявок в CSV.
+- `api/telegram-webhook.js` — webhook Telegram-бота.
 - `assets/landing.css` — стили.
 - `assets/landing.js` — интерактивность каталога, форм и видео.
 
 ## Переменные окружения
 
-Обязательные для Telegram:
-
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `TELEGRAM_CHAT_IDS` — дополнительные получатели заявок через запятую, например `1588048471,123456789`
-- `TELEGRAM_WEBHOOK_SECRET` — секрет webhook для Telegram
-
-Обязательная для доступа к админке:
+Обязательные для заявок и админки:
 
 - `LEADS_ADMIN_TOKEN`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
 
-Для постоянной SQLite-базы на Vercel нужен внешний SQLite/libSQL:
+Опциональные:
 
-- `TURSO_DATABASE_URL`
-- `TURSO_AUTH_TOKEN`
-
-Без Turso/libSQL локально используется `data/leads.sqlite`. На Vercel обычный SQLite-файл не является постоянным хранилищем, поэтому для сохранения заявок между функциями и деплоями нужен внешний libSQL.
+- `TELEGRAM_CHAT_IDS` — дополнительные получатели заявок через запятую.
+- `TELEGRAM_WEBHOOK_SECRET` — секрет webhook для Telegram.
+- `DATABASE_URL` и `DATABASE_AUTH_TOKEN` — внешний SQLite/libSQL, если понадобится вместо локального файла.
 
 ## Админка
 
@@ -42,14 +50,19 @@
 - Список заявок: `/api/leads?token=...`
 - CSV: `/api/export?token=...`
 
-## Telegram-бот
+## Деплой на VPS
 
-- Webhook: `/api/telegram-webhook`
-- Бот отвечает на `/start` и показывает `chat_id`.
-- Чтобы заказчик тоже получал заявки с сайта, он должен открыть бота, отправить `/start`, а его `chat_id` нужно добавить в `TELEGRAM_CHAT_IDS`.
-- Любое обычное сообщение в бота пересылается менеджеру как обращение из Telegram.
+```bash
+cd /var/www/kupola-landing
+git fetch origin main
+git reset --hard origin/main
+npm ci --omit=dev
+systemctl restart kupola-landing
+```
 
-## Публикация
+После деплоя проверить:
 
-Сайт развернут на Vercel:
-https://files-mentioned-by-the-user-jpg.vercel.app
+```bash
+systemctl is-active kupola-landing
+curl -I http://127.0.0.1/
+```

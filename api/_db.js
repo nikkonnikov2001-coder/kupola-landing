@@ -6,15 +6,11 @@ let client;
 let initPromise;
 
 function getDatabaseConfig() {
-  const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
-  const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
+  const url = process.env.DATABASE_URL;
+  const authToken = process.env.DATABASE_AUTH_TOKEN;
 
   if (url) {
     return authToken ? { url, authToken } : { url };
-  }
-
-  if (process.env.VERCEL) {
-    throw new Error('Persistent SQLite is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN.');
   }
 
   const dataDir = path.join(process.cwd(), 'data');
@@ -185,7 +181,7 @@ async function getStats() {
 
 function isAuthorized(req) {
   const token = process.env.LEADS_ADMIN_TOKEN;
-  if (!token) return !process.env.VERCEL;
+  if (!token) return process.env.NODE_ENV !== 'production';
 
   const auth = req.headers.authorization || '';
   const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';

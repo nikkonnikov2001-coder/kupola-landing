@@ -6,6 +6,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.15.15"
+    "@libsql/client": "^0.15.15",
+    "https-proxy-agent": "^9.0.0"
   }
 }

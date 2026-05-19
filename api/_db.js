@@ -69,6 +69,35 @@ function cleanValue(value, maxLength = 1500) {
   return String(value || '').trim().slice(0, maxLength);
 }
 
+function normalizeDate(value) {
+  const text = cleanValue(value, 20);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+}
+
+function buildLeadFilters(filters = {}) {
+  const clauses = [];
+  const args = [];
+  const dateFrom = normalizeDate(filters.dateFrom || filters.date_from || filters.from);
+  const dateTo = normalizeDate(filters.dateTo || filters.date_to || filters.to);
+
+  if (dateFrom) {
+    clauses.push('date(created_at) >= date(?)');
+    args.push(dateFrom);
+  }
+
+  if (dateTo) {
+    clauses.push('date(created_at) <= date(?)');
+    args.push(dateTo);
+  }
+
+  return {
+    args,
+    dateFrom,
+    dateTo,
+    where: clauses.length ? `where ${clauses.join(' and ')}` : '',
+  };
+}
+
 function getIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
   if (typeof forwarded === 'string' && forwarded) {
@@ -102,15 +131,17 @@ async function saveLead(data, req) {
   return Number(result.lastInsertRowid);
 }
 
-async function listLeads(limit = 200) {
+async function listLeads(limit = 200, filters = {}) {
   await initDb();
   const safeLimit = Math.min(Math.max(Number(limit) || 200, 1), 1000);
+  const filter = buildLeadFilters(filters);
   const result = await getClient().execute({
     sql: `select id, created_at, type, product, name, phone, email, telegram, message, page, user_agent, ip
           from leads
+          ${filter.where}
           order by datetime(created_at) desc
           limit ?`,
-    args: [safeLimit],
+    args: [...filter.args, safeLimit],
   });
 
   return result.rows;
@@ -146,33 +177,58 @@ async function saveBotUser(message) {
   return chatId;
 }
 
-async function getStats() {
+async function getStats(filters = {}) {
   await initDb();
   const db = getClient();
-  const [total, today, byProduct, byType, byDay, botUsers] = await Promise.all([
+  const filter = buildLeadFilters(filters);
+  const [total, periodTotal, today, uniquePhones, byProduct, byType, byDay, botUsers] = await Promise.all([
     db.execute('select count(*) as count from leads'),
+    db.execute({
+      sql: `select count(*) as count from leads ${filter.where}`,
+      args: filter.args,
+    }),
     db.execute("select count(*) as count from leads where date(created_at) = date('now')"),
-    db.execute(`select product, count(*) as count
-                from leads
-                group by product
-                order by count desc, product asc
-                limit 20`),
-    db.execute(`select type, count(*) as count
-                from leads
-                group by type
-                order by count desc, type asc`),
-    db.execute(`select date(created_at) as day, count(*) as count
-                from leads
-                group by date(created_at)
-                order by day desc
-                limit 30`),
+    db.execute({
+      sql: `select count(distinct phone) as count from leads ${filter.where}`,
+      args: filter.args,
+    }),
+    db.execute({
+      sql: `select product, count(*) as count
+            from leads
+            ${filter.where}
+            group by product
+            order by count desc, product asc
+            limit 20`,
+      args: filter.args,
+    }),
+    db.execute({
+      sql: `select type, count(*) as count
+            from leads
+            ${filter.where}
+            group by type
+            order by count desc, type asc`,
+      args: filter.args,
+    }),
+    db.execute({
+      sql: `select date(created_at) as day, count(*) as count
+            from leads
+            ${filter.where}
+            group by date(created_at)
+            order by day asc
+            limit 60`,
+      args: filter.args,
+    }),
     db.execute('select count(*) as count from bot_users'),
   ]);
 
   return {
     total: Number(total.rows[0]?.count || 0),
+    periodTotal: Number(periodTotal.rows[0]?.count || 0),
     today: Number(today.rows[0]?.count || 0),
+    uniquePhones: Number(uniquePhones.rows[0]?.count || 0),
     botUsers: Number(botUsers.rows[0]?.count || 0),
+    dateFrom: filter.dateFrom,
+    dateTo: filter.dateTo,
     byProduct: byProduct.rows.map((row) => ({ product: row.product, count: Number(row.count) })),
     byType: byType.rows.map((row) => ({ type: row.type, count: Number(row.count) })),
     byDay: byDay.rows.map((row) => ({ day: row.day, count: Number(row.count) })),

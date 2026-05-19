@@ -11,7 +11,10 @@ module.exports = async function handler(req, res) {
 
   try {
     const params = new URL(req.url, 'http://localhost').searchParams;
-    const leads = await listLeads(params.get('limit') || 200);
+    const leads = await listLeads(params.get('limit') || 200, {
+      dateFrom: params.get('date_from'),
+      dateTo: params.get('date_to'),
+    });
     res.status(200).json({ ok: true, leads });
   } catch (error) {
     console.error(error);

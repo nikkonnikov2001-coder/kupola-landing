@@ -13,6 +13,10 @@ function csvValue(value) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+function filenameDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? value : '';
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -24,7 +28,9 @@ module.exports = async function handler(req, res) {
 
   try {
     const params = new URL(req.url, 'http://localhost').searchParams;
-    const leads = await listLeads(params.get('limit') || 1000);
+    const dateFrom = params.get('date_from');
+    const dateTo = params.get('date_to');
+    const leads = await listLeads(params.get('limit') || 1000, { dateFrom, dateTo });
     const delimiter = ';';
     const csv = [
       CSV_COLUMNS.map(([title]) => csvValue(title)).join(delimiter),
@@ -32,9 +38,11 @@ module.exports = async function handler(req, res) {
         CSV_COLUMNS.map(([, field]) => csvValue(lead[field])).join(delimiter)
       ),
     ].join('\n');
+    const suffix = [filenameDate(dateFrom), filenameDate(dateTo)].filter(Boolean).join('_');
+    const filename = suffix ? `leads_${suffix}.csv` : 'leads.csv';
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="leads.csv"');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.status(200).send(`\uFEFF${csv}`);
   } catch (error) {
     console.error(error);

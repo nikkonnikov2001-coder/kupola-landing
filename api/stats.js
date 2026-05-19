@@ -10,7 +10,11 @@ module.exports = async function handler(req, res) {
   if (!requireAdmin(req, res)) return;
 
   try {
-    const stats = await getStats();
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const stats = await getStats({
+      dateFrom: params.get('date_from'),
+      dateTo: params.get('date_to'),
+    });
     res.status(200).json({ ok: true, stats });
   } catch (error) {
     console.error(error);

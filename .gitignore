@@ -2,6 +2,7 @@
 .env
 .env.*
 .relay-runtime.json
+.regru-deploy-runtime.json
 slice.txt
 node_modules
 data/*.sqlite

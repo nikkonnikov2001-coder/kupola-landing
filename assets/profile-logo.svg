@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 815 284" role="img" aria-labelledby="profile-logo-title profile-logo-desc">
+  <title id="profile-logo-title">ПРОФИЛЬ</title>
+  <desc id="profile-logo-desc">ПРОФИЛЬ, производство и продажа кровли</desc>
+  <rect width="815" height="284" fill="#fff"/>
+  <circle cx="506" cy="95" r="89" fill="#ffd400"/>
+  <text
+    x="12"
+    y="188"
+    fill="#202020"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="132"
+    font-weight="300"
+    letter-spacing="-3"
+  >ПРОФИ</text>
+  <g fill="none" stroke="#202020" stroke-linecap="round" stroke-linejoin="round" stroke-width="13">
+    <path d="M505 183 612 76 724 188"/>
+    <path d="M525 185 612 98 724 210"/>
+    <path d="M692 116v71"/>
+  </g>
+  <text
+    x="734"
+    y="188"
+    fill="#202020"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="132"
+    font-weight="300"
+    letter-spacing="-3"
+  >Ь</text>
+  <text
+    x="407"
+    y="260"
+    fill="#858585"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="32"
+    font-weight="400"
+    text-anchor="middle"
+  >производство и продажа кровли</text>
+</svg>

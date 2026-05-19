@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Купола сферические в шашку — ООО "Профиль"</title>
+    <meta
+      name="description"
+      content="Сферический купол в шашку с каркасом, декоративной облицовкой и покрытием нитридом титана под размеры объекта."
+    >
+    <link rel="stylesheet" href="assets/landing.css?v=23">
+  </head>
+  <body>
+    <div class="contact-bar" aria-label="Контакты">
+      <span>ООО "Профиль"</span>
+      <a href="tel:+73472912291">8 (347) 291-22-91</a>
+      <a href="tel:+79272307007">8 927 230-70-07</a>
+      <a href="mailto:gal4444@yandex.ru">gal4444@yandex.ru</a>
+    </div>
+
+    <header class="landing-header">
+      <a class="brand" href="index.html" aria-label="На главную">
+        <img class="brand__logo" src="assets/profile-logo.jpg" alt="Профиль" width="547" height="250">
+      </a>
+      <nav class="nav" aria-label="Навигация">
+        <a href="index.html#catalog">Каталог</a>
+        <a href="videos.html">Видео</a>
+        <a href="index.html#process">Этапы</a>
+        <a href="index.html#faq">Вопросы</a>
+        <a href="index.html#contacts">Контакты</a>
+      </nav>
+      <button class="header-cta" type="button" data-modal="request">Получить расчет</button>
+    </header>
+
+    <main>
+      <nav class="product-breadcrumbs" aria-label="Хлебные крошки">
+        <a href="index.html">Главная</a>
+        <span>/</span>
+        <a href="index.html#catalog">Каталог</a>
+        <span>/</span>
+        <a href="spherical-domes.html">Купола сферические</a>
+        <span>/</span>
+        <span>Купола сферические в шашку</span>
+      </nav>
+
+      <section class="detail-hero detail-hero--simple">
+        <div class="detail-photo">
+          <img id="detailImage" src="assets/optimized/minaret-sphere-3-960.webp" width="960" height="928" alt="Сферический купол в шашку с покрытием нитридом титана">
+        </div>
+        <aside class="detail-summary">
+          <p class="eyebrow">Изготовление на заказ</p>
+          <h1>Купола сферические в шашку</h1>
+          <p>
+            Сферический купол с ромбовидной раскладкой облицовки для мечетей и архитектурных объектов.
+            Подбираем диаметр, высоту, каркас, декоративный подзор и покрытие по размерам объекта.
+          </p>
+          <dl class="summary-list">
+            <div>
+              <dt>Форма</dt>
+              <dd>сферический купол в шашку</dd>
+            </div>
+            <div>
+              <dt>Облицовка</dt>
+              <dd>нитрид титана или согласованный вариант покрытия</dd>
+            </div>
+            <div>
+              <dt>Расчет</dt>
+              <dd>по размерам, фото или чертежу</dd>
+            </div>
+          </dl>
+          <button class="button button--primary" type="button" data-modal="request" data-product="Купола сферические в шашку">Запросить расчет</button>
+        </aside>
+      </section>
+
+      <section id="description" class="section">
+        <div class="section__head">
+          <p class="eyebrow">Описание</p>
+          <h2>Купол с ромбовидной раскладкой</h2>
+        </div>
+        <div class="description-grid">
+          <article>
+            <h3>Что согласуем</h3>
+            <ul>
+              <li>диаметр, высоту и посадочный размер купола;</li>
+              <li>раскладку шашки и декоративный подзор;</li>
+              <li>тип каркаса, покрытие и узел под полумесяц.</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Для расчета</h3>
+            <ul>
+              <li>достаточно чертежа, фото объекта или размеров;</li>
+              <li>подготовим комплектацию по материалам;</li>
+              <li>уточним изготовление и отправку транспортной компанией.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contacts" class="footer">
+      <div class="footer-content">
+        <div>
+          <a class="brand brand--footer" href="index.html">
+            <img class="brand__logo" src="assets/profile-logo.jpg" alt="Профиль" width="547" height="250" loading="lazy" decoding="async">
+          </a>
+          <p>Изготовление минаретов, куполов, полумесяцев и декоративных элементов по проекту.</p>
+        </div>
+        <address>
+          <strong>Контакты</strong>
+          <a href="tel:+73472912291">8 (347) 291-22-91</a>
+          <a href="tel:+79272307007">8 927 230-70-07</a>
+          <a href="mailto:gal4444@yandex.ru">gal4444@yandex.ru</a>
+        </address>
+      </div>
+    </footer>
+
+    <div class="modal" id="requestModal" aria-hidden="true">
+      <div class="modal__backdrop" data-close></div>
+      <section class="modal__card" role="dialog" aria-modal="true" aria-labelledby="requestTitle">
+        <button class="modal__close" type="button" data-close aria-label="Закрыть">&times;</button>
+        <h2 id="requestTitle">Расчет изделия</h2>
+        <form class="request-form">
+          <label>
+            Имя
+            <input name="name" type="text" placeholder="Иван" required>
+          </label>
+          <label>
+            Телефон
+            <input name="phone" type="tel" placeholder="+7 999 000-00-00" required>
+          </label>
+          <label>
+            Что нужно рассчитать
+            <select name="product">
+              <option>Купола сферические в шашку</option>
+              <option>Купола сферические в рейку</option>
+              <option>Купола сферические</option>
+              <option>Минареты</option>
+              <option>Полумесяцы с шарами</option>
+              <option>Узоры и подзоры</option>
+              <option>Листы с покрытием нитрид титана</option>
+            </select>
+          </label>
+          <label>
+            Размер или комментарий
+            <textarea name="message" rows="4" placeholder="Диаметр, высота, цвет RAL, материал, город доставки"></textarea>
+          </label>
+          <button class="button button--primary" type="submit">Отправить заявку</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+
+    <script defer src="assets/landing.js?v=16"></script>
+  </body>
+</html>

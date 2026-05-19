@@ -1,6 +1,7 @@
 .vercel
 .env
 .env.*
+.relay-runtime.json
 slice.txt
 node_modules
 data/*.sqlite

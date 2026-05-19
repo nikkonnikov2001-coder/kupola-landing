@@ -62,15 +62,6 @@ async function initDb() {
           updated_at text not null default (datetime('now'))
         )`,
         'create index if not exists idx_bot_users_username on bot_users(username)',
-        `create table if not exists broadcasts (
-          id integer primary key autoincrement,
-          created_at text not null default (datetime('now')),
-          channel text not null,
-          message text not null,
-          sent_count integer not null default 0,
-          failed_count integer not null default 0,
-          target_count integer not null default 0
-        )`,
       ]);
     })();
   }
@@ -129,18 +120,6 @@ async function listLeads(limit = 200) {
   return result.rows;
 }
 
-function normalizePhone(phone) {
-  const digits = cleanValue(phone, 100).replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('8')) return `7${digits.slice(1)}`;
-  if (digits.length === 10) return `7${digits}`;
-  return digits;
-}
-
-function normalizeTelegramUsername(value) {
-  const match = cleanValue(value, 100).match(/@?([a-zA-Z0-9_]{5,32})/);
-  return match ? match[1].toLowerCase() : '';
-}
-
 async function saveBotUser(message) {
   await initDb();
   const chat = message.chat || {};
@@ -169,88 +148,6 @@ async function saveBotUser(message) {
   });
 
   return chatId;
-}
-
-async function getBroadcastRecipients(limit = 5000) {
-  await initDb();
-  const safeLimit = Math.min(Math.max(Number(limit) || 5000, 1), 10000);
-  const [leadRows, botRows] = await Promise.all([
-    getClient().execute({
-      sql: `select id, created_at, product, name, phone, telegram
-            from leads
-            order by datetime(created_at) desc
-            limit ?`,
-      args: [safeLimit],
-    }),
-    getClient().execute({
-      sql: `select chat_id, user_id, username, first_name, last_name, created_at, updated_at
-            from bot_users
-            order by datetime(updated_at) desc`,
-    }),
-  ]);
-
-  const phones = new Map();
-  const telegramUsernames = new Map();
-
-  for (const lead of leadRows.rows) {
-    const phoneKey = normalizePhone(lead.phone);
-    if (phoneKey) {
-      const existing = phones.get(phoneKey);
-      phones.set(phoneKey, {
-        count: (existing?.count || 0) + 1,
-        lastLeadAt: existing?.lastLeadAt || lead.created_at,
-        name: existing?.name || lead.name || '',
-        phone: existing?.phone || lead.phone || phoneKey,
-        product: existing?.product || lead.product || '',
-        maxContact: phoneKey,
-      });
-    }
-
-    const username = normalizeTelegramUsername(lead.telegram);
-    if (username) {
-      const existing = telegramUsernames.get(username);
-      telegramUsernames.set(username, {
-        count: (existing?.count || 0) + 1,
-        lastLeadAt: existing?.lastLeadAt || lead.created_at,
-        name: existing?.name || lead.name || '',
-        product: existing?.product || lead.product || '',
-        telegram: `@${username}`,
-        telegramUrl: `https://t.me/${username}`,
-      });
-    }
-  }
-
-  return {
-    phones: Array.from(phones.values()),
-    telegramUsernames: Array.from(telegramUsernames.values()),
-    botUsers: botRows.rows.map((row) => ({
-      chatId: row.chat_id,
-      userId: row.user_id,
-      username: row.username ? `@${row.username}` : '',
-      firstName: row.first_name || '',
-      lastName: row.last_name || '',
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    })),
-  };
-}
-
-async function saveBroadcastLog(data) {
-  await initDb();
-  const result = await getClient().execute({
-    sql: `insert into broadcasts (
-      channel, message, sent_count, failed_count, target_count
-    ) values (?, ?, ?, ?, ?)`,
-    args: [
-      cleanValue(data.channel, 100),
-      cleanValue(data.message, 4000),
-      Number(data.sentCount) || 0,
-      Number(data.failedCount) || 0,
-      Number(data.targetCount) || 0,
-    ],
-  });
-
-  return Number(result.lastInsertRowid);
 }
 
 async function getStats() {
@@ -305,11 +202,9 @@ function requireAdmin(req, res) {
 }
 
 module.exports = {
-  getBroadcastRecipients,
   getStats,
   listLeads,
   requireAdmin,
   saveBotUser,
-  saveBroadcastLog,
   saveLead,
 };

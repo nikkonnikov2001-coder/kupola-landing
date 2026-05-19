@@ -21,6 +21,8 @@
 
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
+- `TELEGRAM_CHAT_IDS` — дополнительные получатели заявок через запятую, например `1588048471,123456789`
+- `TELEGRAM_WEBHOOK_SECRET` — секрет webhook для Telegram
 
 Обязательная для доступа к админке:
 
@@ -39,6 +41,13 @@
 - Статистика: `/api/stats?token=...`
 - Список заявок: `/api/leads?token=...`
 - CSV: `/api/export?token=...`
+
+## Telegram-бот
+
+- Webhook: `/api/telegram-webhook`
+- Бот отвечает на `/start` и показывает `chat_id`.
+- Чтобы заказчик тоже получал заявки с сайта, он должен открыть бота, отправить `/start`, а его `chat_id` нужно добавить в `TELEGRAM_CHAT_IDS`.
+- Любое обычное сообщение в бота пересылается менеджеру как обращение из Telegram.
 
 ## Публикация
 

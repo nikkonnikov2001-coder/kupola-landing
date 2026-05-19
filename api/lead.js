@@ -1,4 +1,5 @@
 const { saveLead } = require('./_db');
+const { sendTelegramMessageToRecipients } = require('./_telegram');
 
 const MAX_FIELD_LENGTH = 1500;
 
@@ -91,57 +92,6 @@ function buildMessage(data) {
     .join('\n');
 }
 
-async function resolveChatId(token) {
-  if (process.env.TELEGRAM_CHAT_ID) {
-    return process.env.TELEGRAM_CHAT_ID;
-  }
-
-  const response = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=20`);
-  const payload = await response.json();
-
-  if (!payload.ok) {
-    throw new Error(payload.description || 'Telegram getUpdates failed');
-  }
-
-  const updates = Array.isArray(payload.result) ? payload.result : [];
-  const latestChat = updates
-    .map((update) => update.message?.chat || update.channel_post?.chat)
-    .filter(Boolean)
-    .pop();
-
-  if (!latestChat?.id) {
-    throw new Error('Telegram chat is not connected. Send /start to the bot or set TELEGRAM_CHAT_ID.');
-  }
-
-  return latestChat.id;
-}
-
-async function sendTelegramMessage(text) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) {
-    throw new Error('TELEGRAM_BOT_TOKEN is not configured');
-  }
-
-  const chatId = await resolveChatId(token);
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-    }),
-  });
-
-  const payload = await response.json();
-  if (!payload.ok) {
-    throw new Error(payload.description || 'Telegram sendMessage failed');
-  }
-
-  return payload.result;
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -169,8 +119,8 @@ module.exports = async function handler(req, res) {
       console.error(databaseError);
     }
 
-    await sendTelegramMessage(buildMessage({ ...data, leadId }));
-    res.status(200).json({ ok: true, leadId, databaseSaved });
+    const telegramResults = await sendTelegramMessageToRecipients(buildMessage({ ...data, leadId }));
+    res.status(200).json({ ok: true, leadId, databaseSaved, telegramSent: telegramResults.length });
   } catch (error) {
     console.error(error);
     res.status(500).json({

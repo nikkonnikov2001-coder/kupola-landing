@@ -1,18 +1,11 @@
 const { listLeads, requireAdmin } = require('./_db');
 
 const CSV_COLUMNS = [
-  'id',
-  'created_at',
-  'type',
-  'product',
-  'name',
-  'phone',
-  'email',
-  'telegram',
-  'message',
-  'page',
-  'ip',
-  'user_agent',
+  ['Имя', 'name'],
+  ['Телефон', 'phone'],
+  ['Telegram', 'telegram'],
+  ['Товар', 'product'],
+  ['Комментарий', 'message'],
 ];
 
 function csvValue(value) {
@@ -32,9 +25,12 @@ module.exports = async function handler(req, res) {
   try {
     const params = new URL(req.url, 'http://localhost').searchParams;
     const leads = await listLeads(params.get('limit') || 1000);
+    const delimiter = ';';
     const csv = [
-      CSV_COLUMNS.join(','),
-      ...leads.map((lead) => CSV_COLUMNS.map((column) => csvValue(lead[column])).join(',')),
+      CSV_COLUMNS.map(([title]) => csvValue(title)).join(delimiter),
+      ...leads.map((lead) =>
+        CSV_COLUMNS.map(([, field]) => csvValue(lead[field])).join(delimiter)
+      ),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

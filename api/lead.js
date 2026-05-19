@@ -1,3 +1,5 @@
+const { saveLead } = require('./_db');
+
 const MAX_FIELD_LENGTH = 1500;
 
 function readJsonBody(req) {
@@ -59,6 +61,7 @@ function formatTelegramLink(value) {
 }
 
 function buildMessage(data) {
+  const leadId = cleanValue(data.leadId);
   const type = cleanValue(data.type) || 'Заявка с сайта';
   const product = cleanValue(data.product) || 'Не указан';
   const name = cleanValue(data.name) || 'Не указано';
@@ -71,6 +74,7 @@ function buildMessage(data) {
   return [
     '<b>Новая заявка с сайта</b>',
     '',
+    leadId ? `<b>ID:</b> ${escapeHtml(leadId)}` : '',
     `<b>Тип:</b> ${escapeHtml(type)}`,
     `<b>Товар:</b> ${escapeHtml(product)}`,
     `<b>Имя:</b> ${escapeHtml(name)}`,
@@ -82,7 +86,9 @@ function buildMessage(data) {
     escapeHtml(message),
     '',
     `<b>Страница:</b> ${escapeHtml(page)}`,
-  ].join('\n');
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
 }
 
 async function resolveChatId(token) {
@@ -153,8 +159,18 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    await sendTelegramMessage(buildMessage(data));
-    res.status(200).json({ ok: true });
+    let leadId = null;
+    let databaseSaved = false;
+
+    try {
+      leadId = await saveLead(data, req);
+      databaseSaved = true;
+    } catch (databaseError) {
+      console.error(databaseError);
+    }
+
+    await sendTelegramMessage(buildMessage({ ...data, leadId }));
+    res.status(200).json({ ok: true, leadId, databaseSaved });
   } catch (error) {
     console.error(error);
     res.status(500).json({

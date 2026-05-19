@@ -1,0 +1,8 @@
+{
+  "name": "kupola-landing",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "@libsql/client": "^0.15.15"
+  }
+}

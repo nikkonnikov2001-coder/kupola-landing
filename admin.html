@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Заявки и статистика</title>
+    <link rel="stylesheet" href="assets/landing.css?v=24">
+    <style>
+      .admin-page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 20px 56px;
+      }
+
+      .admin-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 12px;
+        margin: 24px 0;
+      }
+
+      .admin-panel input {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+
+      .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .admin-card,
+      .admin-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .admin-card {
+        padding: 18px;
+      }
+
+      .admin-card strong {
+        display: block;
+        font-size: 28px;
+      }
+
+      .admin-card span {
+        color: var(--muted);
+      }
+
+      .admin-table-wrap {
+        overflow-x: auto;
+      }
+
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .admin-table th {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .admin-status {
+        min-height: 24px;
+      }
+
+      @media (max-width: 720px) {
+        .admin-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="admin-page">
+      <a class="text-link" href="index.html">← На сайт</a>
+      <h1>Заявки и статистика</h1>
+      <p>Введите админ-токен, чтобы загрузить статистику и выгрузить базу заявок в CSV.</p>
+
+      <div class="admin-panel">
+        <input id="adminToken" type="password" placeholder="Админ-токен">
+        <button class="button button--primary" type="button" id="loadStats">Загрузить</button>
+        <button class="button button--secondary" type="button" id="downloadCsv">Скачать CSV</button>
+      </div>
+
+      <p class="admin-status form-status" id="adminStatus" role="status" aria-live="polite"></p>
+
+      <section class="admin-grid" id="statsCards"></section>
+
+      <section class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Дата</th>
+              <th>Товар</th>
+              <th>Имя</th>
+              <th>Телефон</th>
+              <th>Telegram</th>
+              <th>Запрос</th>
+            </tr>
+          </thead>
+          <tbody id="leadsBody"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const tokenInput = document.querySelector('#adminToken');
+      const status = document.querySelector('#adminStatus');
+      const statsCards = document.querySelector('#statsCards');
+      const leadsBody = document.querySelector('#leadsBody');
+      const savedToken = localStorage.getItem('leadsAdminToken');
+      if (savedToken) tokenInput.value = savedToken;
+
+      function getToken() {
+        const token = tokenInput.value.trim();
+        if (token) localStorage.setItem('leadsAdminToken', token);
+        return token;
+      }
+
+      function authUrl(path) {
+        const token = encodeURIComponent(getToken());
+        return `${path}${path.includes('?') ? '&' : '?'}token=${token}`;
+      }
+
+      function cell(value) {
+        const td = document.createElement('td');
+        td.textContent = value || '';
+        return td;
+      }
+
+      async function loadDashboard() {
+        status.textContent = 'Загружаем данные...';
+        status.classList.remove('is-error');
+
+        try {
+          const [statsResponse, leadsResponse] = await Promise.all([
+            fetch(authUrl('/api/stats')),
+            fetch(authUrl('/api/leads?limit=200')),
+          ]);
+
+          const statsPayload = await statsResponse.json();
+          const leadsPayload = await leadsResponse.json();
+
+          if (!statsResponse.ok || !statsPayload.ok) throw new Error(statsPayload.error || 'Ошибка статистики');
+          if (!leadsResponse.ok || !leadsPayload.ok) throw new Error(leadsPayload.error || 'Ошибка заявок');
+
+          const stats = statsPayload.stats;
+          statsCards.innerHTML = '';
+          [
+            ['Всего заявок', stats.total],
+            ['Сегодня', stats.today],
+            ['Товаров в статистике', stats.byProduct.length],
+          ].forEach(([label, value]) => {
+            const card = document.createElement('article');
+            card.className = 'admin-card';
+            card.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
+            statsCards.append(card);
+          });
+
+          leadsBody.innerHTML = '';
+          leadsPayload.leads.forEach((lead) => {
+            const tr = document.createElement('tr');
+            tr.append(
+              cell(lead.id),
+              cell(lead.created_at),
+              cell(lead.product),
+              cell(lead.name),
+              cell(lead.phone),
+              cell(lead.telegram),
+              cell(lead.message)
+            );
+            leadsBody.append(tr);
+          });
+
+          status.textContent = 'Данные загружены.';
+        } catch (error) {
+          status.textContent = error.message || 'Не удалось загрузить данные.';
+          status.classList.add('is-error');
+        }
+      }
+
+      document.querySelector('#loadStats').addEventListener('click', loadDashboard);
+      document.querySelector('#downloadCsv').addEventListener('click', () => {
+        window.location.href = authUrl('/api/export?limit=1000');
+      });
+    </script>
+  </body>
+</html>

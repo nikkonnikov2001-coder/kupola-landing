@@ -57,6 +57,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 700;
@@ -972,6 +977,15 @@ button.product-image {
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
+}
+
+.b2b-form .lead-telegram-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
 }
 
 .b2b-form input[type="checkbox"] {

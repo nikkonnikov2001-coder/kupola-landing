@@ -8,23 +8,86 @@ function getFormValue(form, name) {
   return String(new FormData(form).get(name) || '').trim();
 }
 
-function buildRequestText(form) {
+function ensureFieldName(input, name) {
+  if (input && !input.name) {
+    input.name = name;
+  }
+}
+
+function ensureTelegramField(form) {
+  if (form.querySelector('[name="telegram"]')) return;
+
+  const phoneInput = form.querySelector('input[name="phone"], input[type="tel"]');
+  const field = document.createElement('label');
+  field.className = 'lead-telegram-field';
+  field.innerHTML = 'Telegram, если есть <input name="telegram" type="text" placeholder="@username">';
+
+  const phoneLabel = phoneInput?.closest('label');
+  if (phoneLabel) {
+    phoneLabel.after(field);
+  } else if (phoneInput) {
+    phoneInput.after(field);
+  }
+}
+
+function getOrCreateStatus(form) {
+  let status = form.querySelector('.form-status');
+  if (!status) {
+    status = document.createElement('p');
+    status.className = 'form-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    form.append(status);
+  }
+
+  return status;
+}
+
+function buildLeadPayload(form, type) {
   const data = new FormData(form);
   const product = data.get('product') || form.dataset.product || 'Расчет изделия';
-  const name = data.get('name') || '';
-  const phone = data.get('phone') || '';
-  const message = data.get('message') || '';
 
-  return [
-    'Здравствуйте. Хочу рассчитать изделие.',
-    '',
-    `Изделие: ${product}`,
-    `Имя: ${name}`,
-    `Телефон: ${phone}`,
-    '',
-    'Комментарий:',
-    message || 'Без комментария',
-  ].join('\n');
+  return {
+    type,
+    product,
+    name: data.get('name') || '',
+    phone: data.get('phone') || '',
+    email: data.get('email') || '',
+    telegram: data.get('telegram') || '',
+    message: data.get('message') || '',
+    page: window.location.href,
+  };
+}
+
+async function sendLead(form, type) {
+  const status = getOrCreateStatus(form);
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  status.textContent = 'Отправляем заявку...';
+  status.classList.remove('is-error');
+  if (submitButton) submitButton.disabled = true;
+
+  try {
+    const response = await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildLeadPayload(form, type)),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.message || result.error || 'Не удалось отправить заявку');
+    }
+
+    status.textContent = 'Заявка отправлена. Мы свяжемся с вами.';
+    form.reset();
+  } catch (error) {
+    status.textContent = 'Не удалось отправить заявку. Позвоните нам или напишите в WhatsApp.';
+    status.classList.add('is-error');
+    console.error(error);
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
 }
 
 function openModal(modal) {
@@ -52,20 +115,11 @@ function closeModal(modal) {
 }
 
 document.querySelectorAll('.request-form').forEach((form) => {
-  form.addEventListener('submit', (event) => {
+  ensureTelegramField(form);
+
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const currentForm = event.currentTarget;
-    const status = currentForm.querySelector('.form-status') || document.createElement('p');
-    const product = getFormValue(currentForm, 'product') || 'Заявка';
-
-    if (!status.parentElement) {
-      status.className = 'form-status';
-      currentForm.append(status);
-    }
-
-    status.textContent = 'Открываем письмо с заполненной заявкой. Если почтовый клиент не открылся, напишите в WhatsApp.';
-    status.classList.remove('is-error');
-    window.location.href = `mailto:gal4444@yandex.ru?subject=${encodeURIComponent(`Заявка: ${product}`)}&body=${encodeURIComponent(buildRequestText(currentForm))}`;
+    await sendLead(event.currentTarget, 'Расчет изделия');
   });
 });
 
@@ -193,26 +247,16 @@ document.querySelectorAll('[data-detail-image]').forEach((button) => {
 });
 
 document.querySelectorAll('.b2b-form').forEach((form) => {
-  form.addEventListener('submit', (event) => {
+  const inputs = form.querySelectorAll('input');
+  ensureFieldName(inputs[0], 'name');
+  ensureFieldName(inputs[1], 'phone');
+  ensureFieldName(inputs[2], 'email');
+  form.dataset.product = 'Оптовое сотрудничество';
+  ensureTelegramField(form);
+
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const currentForm = event.currentTarget;
-    const status = currentForm.querySelector('.form-status') || document.createElement('p');
-
-    if (!status.parentElement) {
-      status.className = 'form-status';
-      currentForm.append(status);
-    }
-
-    const data = new FormData(currentForm);
-    const bodyText = [
-      `Имя: ${data.get('name') || ''}`,
-      `Телефон: ${data.get('phone') || ''}`,
-      `Email: ${data.get('email') || ''}`,
-      '',
-      'Запрос на оптовое сотрудничество',
-    ].join('\n');
-
-    window.location.href = `mailto:gal4444@yandex.ru?subject=${encodeURIComponent('Запрос на оптовое сотрудничество')}&body=${encodeURIComponent(bodyText)}`;
+    await sendLead(event.currentTarget, 'Оптовое сотрудничество');
   });
 });
 

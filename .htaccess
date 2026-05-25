@@ -3,6 +3,7 @@ Options -Indexes -MultiViews
 RewriteEngine On
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 RewriteRule ^api/lead$ /api/lead.php [L]
+RewriteRule ^api/chat$ /api/chat.php [L]
 RewriteRule ^api/cms/(content|session|history|undo|restore|upload)$ /api/cms.php?action=$1 [L,QSA]
 RewriteRule ^editor/?$ /editor.php [L]
 

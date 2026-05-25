@@ -4,6 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 
 const apiHandlers = {
+  '/api/chat': require('./api/chat'),
   '/api/export': require('./api/export'),
   '/api/lead': require('./api/lead'),
   '/api/leads': require('./api/leads'),

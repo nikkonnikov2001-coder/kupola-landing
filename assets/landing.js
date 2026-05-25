@@ -3,8 +3,10 @@ const requestModal = document.querySelector('#requestModal');
 const videoModal = document.querySelector('#videoModal');
 const modalVideo = document.querySelector('#modalVideo');
 const CART_STORAGE_KEY = 'kupolaCartV1';
+const CHAT_STORAGE_KEY = 'kupolaSupportChatV1';
 let lastFocused = null;
 let cartElements = {};
+let chatElements = {};
 
 function getFormValue(form, name) {
   return String(new FormData(form).get(name) || '').trim();
@@ -397,6 +399,160 @@ function checkoutCart() {
   openModal(requestModal);
 }
 
+function getSavedChatCustomer() {
+  try {
+    const value = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '{}');
+    return value && typeof value === 'object' ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveChatCustomer(form) {
+  const data = new FormData(form);
+  localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({
+    name: String(data.get('name') || '').trim(),
+    contact: String(data.get('contact') || '').trim(),
+  }));
+}
+
+function buildSupportChatUi() {
+  if (document.querySelector('.support-chat')) return;
+
+  const saved = getSavedChatCustomer();
+  const widget = document.createElement('div');
+  widget.className = 'support-chat';
+  widget.innerHTML = `
+    <button class="support-chat__toggle" type="button" aria-label="Открыть чат с менеджером" aria-expanded="false">
+      <span class="support-chat__pulse" aria-hidden="true"></span>
+      <span class="support-chat__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-4.2-1l-4.8 1.2 1.3-4.4A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+          <path d="M8 10.5h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      </span>
+      <span>Вопрос менеджеру</span>
+    </button>
+    <section class="support-chat__panel" aria-hidden="true" aria-labelledby="supportChatTitle">
+      <header class="support-chat__header">
+        <div>
+          <p>Онлайн-вопрос</p>
+          <h2 id="supportChatTitle">Напишите менеджеру</h2>
+        </div>
+        <button class="support-chat__close" type="button" aria-label="Закрыть чат">×</button>
+      </header>
+      <div class="support-chat__body">
+        <div class="support-chat__message support-chat__message--manager">
+          Задайте вопрос по изделию, срокам или доставке. Сообщение сразу уйдет менеджеру в МАКС.
+        </div>
+        <div class="support-chat__chips" aria-label="Быстрые вопросы">
+          <button type="button" data-chat-question="Сориентируйте по цене и срокам изготовления.">Цена и сроки</button>
+          <button type="button" data-chat-question="Можно рассчитать доставку в мой город?">Доставка</button>
+          <button type="button" data-chat-question="Нужна консультация по выбору изделия.">Подбор изделия</button>
+        </div>
+        <form class="support-chat__form">
+          <label>
+            Имя
+            <input name="name" type="text" autocomplete="name" placeholder="Ваше имя" value="${escapeHtml(saved.name || '')}">
+          </label>
+          <label>
+            Контакт для ответа
+            <input name="contact" type="text" autocomplete="tel" placeholder="Телефон или MAX" value="${escapeHtml(saved.contact || '')}" required>
+          </label>
+          <label>
+            Вопрос
+            <textarea name="message" rows="4" placeholder="Напишите вопрос" required></textarea>
+          </label>
+          <button class="support-chat__submit" type="submit">Отправить вопрос</button>
+          <p class="support-chat__status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  `;
+
+  document.body.append(widget);
+  chatElements = {
+    widget,
+    toggle: widget.querySelector('.support-chat__toggle'),
+    panel: widget.querySelector('.support-chat__panel'),
+    close: widget.querySelector('.support-chat__close'),
+    form: widget.querySelector('.support-chat__form'),
+    message: widget.querySelector('textarea[name="message"]'),
+    status: widget.querySelector('.support-chat__status'),
+  };
+
+  chatElements.toggle.addEventListener('click', () => {
+    if (widget.classList.contains('is-open')) {
+      closeSupportChat();
+    } else {
+      openSupportChat();
+    }
+  });
+  chatElements.close.addEventListener('click', closeSupportChat);
+  widget.querySelectorAll('[data-chat-question]').forEach((button) => {
+    button.addEventListener('click', () => {
+      chatElements.message.value = button.dataset.chatQuestion || '';
+      chatElements.message.focus();
+    });
+  });
+  chatElements.form.addEventListener('submit', sendSupportChatMessage);
+}
+
+function openSupportChat() {
+  if (!chatElements.widget) return;
+  closeCart();
+  chatElements.widget.classList.add('is-open');
+  chatElements.toggle.setAttribute('aria-expanded', 'true');
+  chatElements.panel.setAttribute('aria-hidden', 'false');
+  setTimeout(() => chatElements.message?.focus(), 80);
+}
+
+function closeSupportChat() {
+  if (!chatElements.widget) return;
+  chatElements.widget.classList.remove('is-open');
+  chatElements.toggle.setAttribute('aria-expanded', 'false');
+  chatElements.panel.setAttribute('aria-hidden', 'true');
+}
+
+async function sendSupportChatMessage(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  chatElements.status.textContent = 'Отправляем вопрос...';
+  chatElements.status.classList.remove('is-error');
+  submitButton.disabled = true;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: data.get('name') || '',
+        contact: data.get('contact') || '',
+        message: data.get('message') || '',
+        page: window.location.href,
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.message || result.error || 'Не удалось отправить вопрос');
+    }
+
+    saveChatCustomer(form);
+    chatElements.status.textContent = 'Вопрос отправлен. Менеджер ответит по указанному контакту.';
+    form.querySelector('textarea[name="message"]').value = '';
+  } catch (error) {
+    chatElements.status.textContent = 'Не удалось отправить вопрос. Позвоните нам или напишите в МАКС.';
+    chatElements.status.classList.add('is-error');
+    console.error(error);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 function enhanceCartButtons() {
   document.querySelectorAll('.btn-add-to-cart').forEach((button) => {
     button.textContent = 'В корзину';
@@ -430,6 +586,7 @@ document.querySelectorAll('.request-form').forEach((form) => {
 });
 
 buildCartUi();
+buildSupportChatUi();
 enhanceCartButtons();
 renderCart();
 
@@ -476,6 +633,7 @@ document.querySelectorAll('.modal').forEach((modal) => {
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   closeCart();
+  closeSupportChat();
   document.querySelectorAll('.modal.is-open').forEach(closeModal);
 });
 

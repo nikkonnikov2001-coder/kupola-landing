@@ -14,12 +14,49 @@
     content: { version: 1, items: {} },
     dirty: false,
     selected: null,
+    pageSelect: null,
     saveButton: null,
     undoButton: null,
     panel: null,
     toast: null,
     fileInput: null,
   };
+
+  const sitePages = [
+    {
+      label: 'Основные страницы',
+      items: [
+        { path: '/', label: 'Главная' },
+        { path: '/videos.html', label: 'Видео' },
+      ],
+    },
+    {
+      label: 'Разделы каталога',
+      items: [
+        { path: '/minarets.html', label: 'Минареты' },
+        { path: '/spherical-domes.html', label: 'Купола сферические' },
+        { path: '/crescent-kits.html', label: 'Полумесяцы с шарами' },
+        { path: '/mini-crescents.html', label: 'Полумесяцы мини' },
+        { path: '/podzory.html', label: 'Узоры и подзоры' },
+        { path: '/titanium-sheets.html', label: 'Листы с покрытием нитрид титана' },
+      ],
+    },
+    {
+      label: 'Карточки каталога',
+      items: [
+        { path: '/spherical-dome.html', label: 'Купол сферический в рейку' },
+        { path: '/spherical-dome-checker.html', label: 'Купол сферический в шашку' },
+        { path: '/crescent-400.html', label: 'Полумесяц 400 мм' },
+        { path: '/crescent-500.html', label: 'Полумесяц 500 мм' },
+        { path: '/crescent-700.html', label: 'Полумесяц 700 мм' },
+        { path: '/four-sided-minaret.html', label: 'Прямой 4-гранный минарет' },
+        { path: '/octagonal-minaret.html', label: 'Прямой 8-гранный минарет' },
+        { path: '/round-minaret.html', label: 'Круглый минарет' },
+        { path: '/oval-minaret.html', label: 'Овальный минарет' },
+        { path: '/spherical-minaret.html', label: 'Сферический минарет' },
+      ],
+    },
+  ];
 
   const textSelector = [
     'h1', 'h2', 'h3', 'h4', 'p', 'li', 'strong', 'small', 'em', 'dt', 'dd',
@@ -56,6 +93,35 @@
 
   function seoKey(name) {
     return `seo.${scope}.${name}`;
+  }
+
+  function currentPagePath() {
+    const pathname = location.pathname || '/';
+    if (ADMIN_PATH_RE.test(pathname) || pathname === '/index.html') return '/';
+    return pathname;
+  }
+
+  function pageOptionHtml() {
+    const current = currentPagePath();
+    return sitePages.map((group) => `
+      <optgroup label="${escapeHtml(group.label)}">
+        ${group.items.map((item) => `<option value="${escapeHtml(item.path)}"${item.path === current ? ' selected' : ''}>${escapeHtml(item.label)}</option>`).join('')}
+      </optgroup>
+    `).join('');
+  }
+
+  function editUrlFor(pathname) {
+    if (pathname === '/') return ADMIN_URL;
+    return `${pathname}?cms`;
+  }
+
+  function navigateToCmsPage(pathname) {
+    if (!pathname || pathname === currentPagePath()) return;
+    if (state.dirty && !confirm('Есть несохраненные правки. Перейти на другую страницу без сохранения?')) {
+      if (state.pageSelect) state.pageSelect.value = currentPagePath();
+      return;
+    }
+    location.href = editUrlFor(pathname);
   }
 
   function isInsideCmsUi(el) {
@@ -177,6 +243,10 @@
     toolbar.className = 'cms-toolbar';
     toolbar.innerHTML = `
       <strong>CMS</strong>
+      <label class="cms-page-picker">
+        <span>Страница</span>
+        <select class="cms-page-select" aria-label="Страница сайта">${pageOptionHtml()}</select>
+      </label>
       <button class="cms-save" type="button">Сохранить</button>
       <button class="cms-seo" type="button">SEO</button>
       <button class="cms-history" type="button">История</button>
@@ -216,12 +286,14 @@
     toastNode.className = 'cms-toast';
 
     document.body.append(toolbar, panel, fileInput, toastNode);
+    state.pageSelect = toolbar.querySelector('.cms-page-select');
     state.saveButton = toolbar.querySelector('.cms-save');
     state.undoButton = toolbar.querySelector('.cms-undo');
     state.panel = panel;
     state.fileInput = fileInput;
     state.toast = toastNode;
 
+    state.pageSelect.addEventListener('change', () => navigateToCmsPage(state.pageSelect.value));
     toolbar.querySelector('.cms-save').addEventListener('click', saveContent);
     toolbar.querySelector('.cms-seo').addEventListener('click', showSeoPanel);
     toolbar.querySelector('.cms-history').addEventListener('click', showHistoryPanel);

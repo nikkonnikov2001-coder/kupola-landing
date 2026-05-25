@@ -171,6 +171,43 @@
   margin-top: 10px;
 }
 
+.cms-pages-fields {
+  margin-top: 10px;
+}
+
+.cms-pages-list {
+  display: grid;
+  gap: 14px;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.cms-pages-group h4 {
+  margin: 0 0 8px;
+  color: rgba(255,255,255,.72);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.cms-pages-group div {
+  display: grid;
+  gap: 8px;
+}
+
+.cms-pages-group button {
+  width: 100%;
+  border-radius: 14px;
+  background: rgba(255,255,255,.1);
+  color: var(--cms-white);
+  text-align: left;
+}
+
+.cms-pages-group button.is-current {
+  background: var(--cms-accent);
+  color: var(--cms-black);
+}
+
 .cms-history-list {
   display: grid;
   gap: 8px;

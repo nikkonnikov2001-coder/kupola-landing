@@ -248,6 +248,7 @@
         <select class="cms-page-select" aria-label="Страница сайта">${pageOptionHtml()}</select>
       </label>
       <button class="cms-save" type="button">Сохранить</button>
+      <button class="cms-pages" type="button">Страницы</button>
       <button class="cms-seo" type="button">SEO</button>
       <button class="cms-history" type="button">История</button>
       <button class="cms-undo" type="button">Отмена</button>
@@ -267,6 +268,9 @@
       </div>
       <div class="cms-history-fields" hidden>
         <div class="cms-history-list" data-cms-history-list>Загружаю историю...</div>
+      </div>
+      <div class="cms-pages-fields" hidden>
+        <div class="cms-pages-list" data-cms-pages-list></div>
       </div>
       <label class="cms-link-field" hidden>Ссылка<input data-cms-href placeholder="https://..."></label>
       <label class="cms-alt-field" hidden>Alt картинки<input data-cms-alt placeholder="Описание картинки"></label>
@@ -295,6 +299,7 @@
 
     state.pageSelect.addEventListener('change', () => navigateToCmsPage(state.pageSelect.value));
     toolbar.querySelector('.cms-save').addEventListener('click', saveContent);
+    toolbar.querySelector('.cms-pages').addEventListener('click', showPagesPanel);
     toolbar.querySelector('.cms-seo').addEventListener('click', showSeoPanel);
     toolbar.querySelector('.cms-history').addEventListener('click', showHistoryPanel);
     toolbar.querySelector('.cms-undo').addEventListener('click', undoLastSave);
@@ -384,12 +389,15 @@
     const altField = panel.querySelector('.cms-alt-field');
     const altInput = panel.querySelector('[data-cms-alt]');
     const historyFields = panel.querySelector('.cms-history-fields');
+    const pagesFields = panel.querySelector('.cms-pages-fields');
     const applyButton = panel.querySelector('[data-cms-apply]');
     const clearButton = panel.querySelector('[data-cms-clear]');
     applyButton.textContent = 'Применить';
+    applyButton.hidden = false;
     clearButton.hidden = false;
     seoFields.hidden = true;
     historyFields.hidden = true;
+    pagesFields.hidden = true;
     hrefField.hidden = !el.dataset.cmsLinkKey && kind !== 'link';
     altField.hidden = !el.dataset.cmsImageKey && kind !== 'image';
     if (!hrefField.hidden) hrefInput.value = el.getAttribute('href') || '';
@@ -399,6 +407,7 @@
   function applyPanelFields() {
     if (state.panel?.dataset.mode === 'seo') return applySeoFields();
     if (state.panel?.dataset.mode === 'history') return loadHistoryList();
+    if (state.panel?.dataset.mode === 'pages') return;
     const selected = state.selected;
     if (!selected) return;
     const { el } = selected;
@@ -415,6 +424,45 @@
       setItem(el.dataset.cmsImageKey, { type: 'image', alt });
     }
     toast('Применено, сохраните изменения');
+  }
+
+  function showPagesPanel() {
+    if (state.selected?.el) state.selected.el.classList.remove('cms-selected');
+    state.selected = null;
+    const panel = state.panel;
+    panel.hidden = false;
+    panel.dataset.mode = 'pages';
+    panel.querySelector('[data-cms-panel-title]').textContent = 'Страницы сайта';
+    panel.querySelector('[data-cms-panel-help]').textContent = 'Выберите страницу или карточку каталога. Она откроется сразу в режиме редактирования.';
+    panel.querySelector('.cms-seo-fields').hidden = true;
+    panel.querySelector('.cms-history-fields').hidden = true;
+    panel.querySelector('.cms-pages-fields').hidden = false;
+    panel.querySelector('.cms-link-field').hidden = true;
+    panel.querySelector('.cms-alt-field').hidden = true;
+    panel.querySelector('[data-cms-apply]').hidden = true;
+    panel.querySelector('[data-cms-clear]').hidden = true;
+    renderPagesList();
+  }
+
+  function renderPagesList() {
+    const list = state.panel.querySelector('[data-cms-pages-list]');
+    const current = currentPagePath();
+    list.innerHTML = sitePages.map((group) => `
+      <section class="cms-pages-group">
+        <h4>${escapeHtml(group.label)}</h4>
+        <div>
+          ${group.items.map((item) => `
+            <button class="${item.path === current ? 'is-current' : ''}" type="button" data-cms-page="${escapeHtml(item.path)}">
+              ${escapeHtml(item.label)}
+            </button>
+          `).join('')}
+        </div>
+      </section>
+    `).join('');
+
+    list.querySelectorAll('[data-cms-page]').forEach((button) => {
+      button.addEventListener('click', () => navigateToCmsPage(button.dataset.cmsPage));
+    });
   }
 
   function ensureMetaDescription() {
@@ -437,9 +485,11 @@
     panel.querySelector('[data-cms-panel-help]').textContent = 'Заголовок вкладки и описание для поисковиков. Эти настройки сохраняются отдельно для каждой страницы.';
     panel.querySelector('.cms-seo-fields').hidden = false;
     panel.querySelector('.cms-history-fields').hidden = true;
+    panel.querySelector('.cms-pages-fields').hidden = true;
     panel.querySelector('.cms-link-field').hidden = true;
     panel.querySelector('.cms-alt-field').hidden = true;
     panel.querySelector('[data-cms-apply]').textContent = 'Применить';
+    panel.querySelector('[data-cms-apply]').hidden = false;
     panel.querySelector('[data-cms-clear]').hidden = true;
     panel.querySelector('[data-cms-seo-title]').value = state.content.items?.[seoKey('title')]?.text || document.title || '';
     panel.querySelector('[data-cms-seo-description]').value = state.content.items?.[seoKey('description')]?.text || document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
@@ -465,9 +515,11 @@
     panel.querySelector('[data-cms-panel-help]').textContent = 'Каждое сохранение создает версию. Можно откатиться к любой точке.';
     panel.querySelector('.cms-seo-fields').hidden = true;
     panel.querySelector('.cms-history-fields').hidden = false;
+    panel.querySelector('.cms-pages-fields').hidden = true;
     panel.querySelector('.cms-link-field').hidden = true;
     panel.querySelector('.cms-alt-field').hidden = true;
     panel.querySelector('[data-cms-apply]').textContent = 'Обновить';
+    panel.querySelector('[data-cms-apply]').hidden = false;
     panel.querySelector('[data-cms-clear]').hidden = true;
     await loadHistoryList();
   }

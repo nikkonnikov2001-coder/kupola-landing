@@ -2,7 +2,9 @@ const body = document.body;
 const requestModal = document.querySelector('#requestModal');
 const videoModal = document.querySelector('#videoModal');
 const modalVideo = document.querySelector('#modalVideo');
+const CART_STORAGE_KEY = 'kupolaCartV1';
 let lastFocused = null;
+let cartElements = {};
 
 function getFormValue(form, name) {
   return String(new FormData(form).get(name) || '').trim();
@@ -45,7 +47,16 @@ function getOrCreateStatus(form) {
 
 function buildLeadPayload(form, type) {
   const data = new FormData(form);
-  const product = data.get('product') || form.dataset.product || 'Расчет изделия';
+  const includeCart = form.dataset.includeCart === 'true';
+  const cartItems = includeCart ? getCartItems() : [];
+  const product = cartItems.length
+    ? `Корзина (${getCartTotalQuantity(cartItems)} поз.)`
+    : data.get('product') || form.dataset.product || 'Расчет изделия';
+  const messageParts = [];
+  const message = String(data.get('message') || '').trim();
+
+  if (message) messageParts.push(message);
+  if (cartItems.length) messageParts.push(getCartSummaryText(cartItems));
 
   return {
     type,
@@ -54,7 +65,7 @@ function buildLeadPayload(form, type) {
     phone: data.get('phone') || '',
     email: data.get('email') || '',
     telegram: data.get('telegram') || '',
-    message: data.get('message') || '',
+    message: messageParts.join('\n\n'),
     page: window.location.href,
   };
 }
@@ -80,6 +91,10 @@ async function sendLead(form, type) {
     }
 
     status.textContent = 'Заявка отправлена. Мы свяжемся с вами.';
+    if (form.dataset.includeCart === 'true') {
+      clearCart();
+      form.dataset.includeCart = '';
+    }
     form.reset();
   } catch (error) {
     status.textContent = 'Не удалось отправить заявку. Позвоните нам или напишите в мессенджер МАКС.';
@@ -114,6 +129,297 @@ function closeModal(modal) {
   }
 }
 
+function safeCartId(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\wа-яё-]+/gi, '')
+    .slice(0, 90) || `item-${Date.now()}`;
+}
+
+function getCartItems() {
+  try {
+    const value = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+    return Array.isArray(value) ? value.filter((item) => item && item.title) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCartItems(items) {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  renderCart();
+}
+
+function getCartTotalQuantity(items = getCartItems()) {
+  return items.reduce((total, item) => total + Math.max(1, Number(item.quantity) || 1), 0);
+}
+
+function getProductFromElement(element) {
+  const card = element.closest('.product-card');
+  const summary = element.closest('.detail-summary');
+  const title =
+    element.dataset.product ||
+    card?.querySelector('h3')?.textContent ||
+    summary?.querySelector('h1')?.textContent ||
+    document.querySelector('h1')?.textContent ||
+    document.title;
+  const description =
+    card?.querySelector('p:not(.product-price)')?.textContent ||
+    summary?.querySelector('p:not(.eyebrow)')?.textContent ||
+    '';
+  const price = card?.querySelector('.product-price')?.textContent || '';
+  const image =
+    card?.querySelector('img')?.currentSrc ||
+    card?.querySelector('img')?.src ||
+    document.querySelector('#detailImage')?.currentSrc ||
+    document.querySelector('#detailImage')?.src ||
+    '';
+  const href =
+    card?.querySelector('a.product-image, .link-btn')?.getAttribute('href') ||
+    window.location.pathname;
+
+  return {
+    id: safeCartId(`${title}-${href}`),
+    title: String(title || '').replace(/\s+/g, ' ').trim(),
+    description: String(description || '').replace(/\s+/g, ' ').trim().slice(0, 180),
+    price: String(price || '').replace(/\s+/g, ' ').trim(),
+    image,
+    href,
+    quantity: 1,
+  };
+}
+
+function addCartItem(product) {
+  const items = getCartItems();
+  const existing = items.find((item) => item.id === product.id);
+
+  if (existing) {
+    existing.quantity = Math.min(99, Math.max(1, Number(existing.quantity) || 1) + 1);
+  } else {
+    items.push(product);
+  }
+
+  saveCartItems(items);
+  showCartToast(`${product.title} добавлен в корзину`);
+  openCart();
+}
+
+function updateCartItemQuantity(id, quantity) {
+  const nextQuantity = Math.max(1, Math.min(99, Number(quantity) || 1));
+  saveCartItems(getCartItems().map((item) => item.id === id ? { ...item, quantity: nextQuantity } : item));
+}
+
+function removeCartItem(id) {
+  saveCartItems(getCartItems().filter((item) => item.id !== id));
+}
+
+function clearCart() {
+  saveCartItems([]);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }[char]));
+}
+
+function getCartSummaryText(items = getCartItems()) {
+  if (!items.length) return '';
+
+  return [
+    'Корзина:',
+    ...items.map((item, index) => {
+      const details = [item.description, item.price].filter(Boolean).join(' | ');
+      return `${index + 1}. ${item.title} — ${Math.max(1, Number(item.quantity) || 1)} шт.${details ? ` (${details})` : ''}`;
+    }),
+  ].join('\n');
+}
+
+function buildCartUi() {
+  if (document.querySelector('.cart-float')) return;
+
+  const button = document.createElement('button');
+  button.className = 'cart-float';
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Открыть корзину');
+  button.innerHTML = `
+    <span class="cart-float__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+        <path d="M6 6h15l-2 8H8L6 3H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="9" cy="20" r="1.5" fill="currentColor"></circle>
+        <circle cx="18" cy="20" r="1.5" fill="currentColor"></circle>
+      </svg>
+    </span>
+    <span class="cart-float__text">Корзина</span>
+    <span class="cart-float__count" data-cart-count>0</span>
+  `;
+
+  const drawer = document.createElement('div');
+  drawer.className = 'cart-drawer';
+  drawer.setAttribute('aria-hidden', 'true');
+  drawer.innerHTML = `
+    <div class="cart-drawer__backdrop" data-cart-close></div>
+    <aside class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+      <header class="cart-panel__header">
+        <div>
+          <p>Подбор изделий</p>
+          <h2 id="cartTitle">Корзина</h2>
+        </div>
+        <button class="cart-panel__close" type="button" data-cart-close aria-label="Закрыть корзину">×</button>
+      </header>
+      <div class="cart-panel__list" data-cart-list></div>
+      <div class="cart-panel__empty" data-cart-empty>
+        <strong>Корзина пока пустая</strong>
+        <span>Добавьте изделия из каталога, затем отправьте одну заявку на расчет.</span>
+      </div>
+      <label class="cart-panel__note">
+        Комментарий к корзине
+        <textarea data-cart-note rows="3" placeholder="Размеры, цвет RAL, город доставки, сроки"></textarea>
+      </label>
+      <footer class="cart-panel__footer">
+        <button class="cart-clear" type="button" data-cart-clear>Очистить</button>
+        <button class="cart-submit" type="button" data-cart-checkout>Запросить расчет</button>
+      </footer>
+    </aside>
+  `;
+
+  const toast = document.createElement('div');
+  toast.className = 'cart-toast';
+
+  document.body.append(button, drawer, toast);
+  cartElements = {
+    button,
+    drawer,
+    count: button.querySelector('[data-cart-count]'),
+    list: drawer.querySelector('[data-cart-list]'),
+    empty: drawer.querySelector('[data-cart-empty]'),
+    note: drawer.querySelector('[data-cart-note]'),
+    toast,
+  };
+
+  button.addEventListener('click', openCart);
+  drawer.querySelectorAll('[data-cart-close]').forEach((item) => item.addEventListener('click', closeCart));
+  drawer.querySelector('[data-cart-clear]').addEventListener('click', clearCart);
+  drawer.querySelector('[data-cart-checkout]').addEventListener('click', checkoutCart);
+}
+
+function openCart() {
+  if (!cartElements.drawer) return;
+  cartElements.drawer.classList.add('is-open');
+  cartElements.drawer.setAttribute('aria-hidden', 'false');
+  body.classList.add('cart-open');
+}
+
+function closeCart() {
+  if (!cartElements.drawer) return;
+  cartElements.drawer.classList.remove('is-open');
+  cartElements.drawer.setAttribute('aria-hidden', 'true');
+  body.classList.remove('cart-open');
+}
+
+function showCartToast(message) {
+  if (!cartElements.toast) return;
+  cartElements.toast.textContent = message;
+  cartElements.toast.classList.add('is-visible');
+  clearTimeout(showCartToast.timer);
+  showCartToast.timer = setTimeout(() => cartElements.toast?.classList.remove('is-visible'), 2200);
+}
+
+function renderCart() {
+  if (!cartElements.list) return;
+  const items = getCartItems();
+  const total = getCartTotalQuantity(items);
+
+  cartElements.count.textContent = String(total);
+  cartElements.button.classList.toggle('has-items', total > 0);
+  cartElements.empty.hidden = items.length > 0;
+  cartElements.list.hidden = items.length === 0;
+
+  cartElements.list.innerHTML = items.map((item) => `
+    <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
+      ${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : ''}
+      <div class="cart-item__body">
+        <h3>${escapeHtml(item.title)}</h3>
+        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
+        ${item.price ? `<strong>${escapeHtml(item.price)}</strong>` : ''}
+        <div class="cart-item__controls">
+          <button type="button" data-cart-minus aria-label="Уменьшить количество">−</button>
+          <span>${Math.max(1, Number(item.quantity) || 1)}</span>
+          <button type="button" data-cart-plus aria-label="Увеличить количество">+</button>
+          <button type="button" data-cart-remove>Удалить</button>
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  cartElements.list.querySelectorAll('.cart-item').forEach((itemNode) => {
+    const id = itemNode.dataset.cartId;
+    const item = items.find((cartItem) => cartItem.id === id);
+    const quantity = Math.max(1, Number(item?.quantity) || 1);
+    itemNode.querySelector('[data-cart-minus]').addEventListener('click', () => updateCartItemQuantity(id, quantity - 1));
+    itemNode.querySelector('[data-cart-plus]').addEventListener('click', () => updateCartItemQuantity(id, quantity + 1));
+    itemNode.querySelector('[data-cart-remove]').addEventListener('click', () => removeCartItem(id));
+  });
+}
+
+function checkoutCart() {
+  const items = getCartItems();
+  if (!items.length) {
+    showCartToast('Добавьте хотя бы один товар');
+    return;
+  }
+
+  closeCart();
+  const form = requestModal?.querySelector('.request-form');
+  const productSelect = requestModal?.querySelector('select[name="product"]');
+  const messageInput = requestModal?.querySelector('textarea[name="message"]');
+  const note = cartElements.note?.value.trim() || '';
+
+  if (form) form.dataset.includeCart = 'true';
+  if (productSelect) {
+    let option = Array.from(productSelect.options).find((item) => item.value === 'Корзина товаров');
+    if (!option) {
+      option = new Option('Корзина товаров', 'Корзина товаров');
+      productSelect.add(option, 0);
+    }
+    productSelect.value = 'Корзина товаров';
+  }
+  if (messageInput) {
+    messageInput.value = note;
+  }
+
+  openModal(requestModal);
+}
+
+function enhanceCartButtons() {
+  document.querySelectorAll('.btn-add-to-cart').forEach((button) => {
+    button.textContent = 'В корзину';
+    button.setAttribute('aria-label', `Добавить в корзину: ${button.dataset.product || 'товар'}`);
+  });
+
+  document.querySelectorAll('.detail-summary').forEach((summary) => {
+    if (summary.querySelector('.detail-cart-add')) return;
+    const requestButton = summary.querySelector('[data-modal="request"]');
+    if (!requestButton) return;
+    const cartButton = document.createElement('button');
+    cartButton.className = 'button button--secondary detail-cart-add';
+    cartButton.type = 'button';
+    cartButton.dataset.product = requestButton.dataset.product || summary.querySelector('h1')?.textContent || document.title;
+    cartButton.textContent = 'Добавить в корзину';
+    requestButton.insertAdjacentElement('afterend', cartButton);
+  });
+
+  document.querySelectorAll('.detail-cart-add').forEach((button) => {
+    button.addEventListener('click', () => addCartItem(getProductFromElement(button)));
+  });
+}
+
 document.querySelectorAll('.request-form').forEach((form) => {
   ensureTelegramField(form);
 
@@ -123,8 +429,20 @@ document.querySelectorAll('.request-form').forEach((form) => {
   });
 });
 
+buildCartUi();
+enhanceCartButtons();
+renderCart();
+
 document.querySelectorAll('[data-modal="request"]').forEach((button) => {
   button.addEventListener('click', () => {
+    if (button.classList.contains('btn-add-to-cart')) {
+      addCartItem(getProductFromElement(button));
+      return;
+    }
+
+    const requestForm = requestModal?.querySelector('.request-form');
+    if (requestForm) requestForm.dataset.includeCart = '';
+
     const product = button.dataset.product;
     const productSelect = requestModal?.querySelector('select[name="product"]');
 
@@ -157,6 +475,7 @@ document.querySelectorAll('.modal').forEach((modal) => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
+  closeCart();
   document.querySelectorAll('.modal.is-open').forEach(closeModal);
 });
 

@@ -1,0 +1,37 @@
+{
+  "groups": [
+    {
+      "label": "Основные страницы",
+      "items": [
+        { "path": "/", "label": "Главная" },
+        { "path": "/videos.html", "label": "Видео" }
+      ]
+    },
+    {
+      "label": "Разделы каталога",
+      "items": [
+        { "path": "/minarets.html", "label": "Минареты" },
+        { "path": "/spherical-domes.html", "label": "Купола сферические" },
+        { "path": "/crescent-kits.html", "label": "Полумесяцы с шарами" },
+        { "path": "/mini-crescents.html", "label": "Полумесяцы мини" },
+        { "path": "/podzory.html", "label": "Узоры и подзоры" },
+        { "path": "/titanium-sheets.html", "label": "Листы с покрытием нитрид титана" }
+      ]
+    },
+    {
+      "label": "Карточки каталога",
+      "items": [
+        { "path": "/spherical-dome.html", "label": "Купол сферический в рейку" },
+        { "path": "/spherical-dome-checker.html", "label": "Купол сферический в шашку" },
+        { "path": "/crescent-400.html", "label": "Полумесяц 400 мм" },
+        { "path": "/crescent-500.html", "label": "Полумесяц 500 мм" },
+        { "path": "/crescent-700.html", "label": "Полумесяц 700 мм" },
+        { "path": "/four-sided-minaret.html", "label": "Прямой 4-гранный минарет" },
+        { "path": "/octagonal-minaret.html", "label": "Прямой 8-гранный минарет" },
+        { "path": "/round-minaret.html", "label": "Круглый минарет" },
+        { "path": "/oval-minaret.html", "label": "Овальный минарет" },
+        { "path": "/spherical-minaret.html", "label": "Сферический минарет" }
+      ]
+    }
+  ]
+}

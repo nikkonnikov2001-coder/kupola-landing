@@ -1,0 +1,19 @@
+{
+  "groups": [
+    {
+      "label": "Основные страницы",
+      "items": [
+        { "path": "/", "label": "Главная" },
+        { "path": "/about.html", "label": "О компании" },
+        { "path": "/contacts.html", "label": "Контакты" }
+      ]
+    },
+    {
+      "label": "Каталог",
+      "items": [
+        { "path": "/catalog.html", "label": "Каталог" },
+        { "path": "/product-1.html", "label": "Карточка товара 1" }
+      ]
+    }
+  ]
+}

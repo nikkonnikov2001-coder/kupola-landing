@@ -1,7 +1,10 @@
-Options -Indexes
+Options -Indexes -MultiViews
 
 RewriteEngine On
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 RewriteRule ^api/lead$ /api/lead.php [L]
+RewriteRule ^api/cms/(content|session|history|undo|restore|upload)$ /api/cms.php?action=$1 [L,QSA]
+RewriteRule ^editor/?$ /editor.php [L]
 
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"

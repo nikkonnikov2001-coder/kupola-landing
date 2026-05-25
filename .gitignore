@@ -3,7 +3,11 @@
 .env.*
 .relay-runtime.json
 .regru-deploy-runtime.json
+.cms-runtime.json
 slice.txt
 node_modules
 data/*.sqlite
 data/*.sqlite-*
+cms/history/
+uploads/*
+!uploads/.gitkeep

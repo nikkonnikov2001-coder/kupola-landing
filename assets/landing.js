@@ -4,6 +4,8 @@ const videoModal = document.querySelector('#videoModal');
 const modalVideo = document.querySelector('#modalVideo');
 const CART_STORAGE_KEY = 'kupolaCartV1';
 const CHAT_STORAGE_KEY = 'kupolaSupportChatV1';
+const DEFAULT_PRODUCT_PRICE = 50000;
+const DEFAULT_PRODUCT_PRICE_LABEL = '50 000 руб';
 let lastFocused = null;
 let cartElements = {};
 let chatElements = {};
@@ -158,9 +160,31 @@ function getCartTotalQuantity(items = getCartItems()) {
   return items.reduce((total, item) => total + Math.max(1, Number(item.quantity) || 1), 0);
 }
 
+function parseProductPrice(value) {
+  const number = String(value || '')
+    .replace(/[^\d]/g, '');
+  return number ? Number(number) : DEFAULT_PRODUCT_PRICE;
+}
+
+function formatProductPrice(value) {
+  return `${Math.max(0, Number(value) || 0).toLocaleString('ru-RU')} руб`;
+}
+
+function getCartItemPriceValue(item) {
+  return Math.max(0, Number(item.priceValue) || parseProductPrice(item.price));
+}
+
+function getCartTotalAmount(items = getCartItems()) {
+  return items.reduce((total, item) => {
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    return total + getCartItemPriceValue(item) * quantity;
+  }, 0);
+}
+
 function getProductFromElement(element) {
   const card = element.closest('.product-card');
   const summary = element.closest('.detail-summary');
+  const priceNode = card?.querySelector('.product-price') || summary?.querySelector('.product-price');
   const title =
     element.dataset.product ||
     card?.querySelector('h3')?.textContent ||
@@ -169,9 +193,10 @@ function getProductFromElement(element) {
     document.title;
   const description =
     card?.querySelector('p:not(.product-price)')?.textContent ||
-    summary?.querySelector('p:not(.eyebrow)')?.textContent ||
+    summary?.querySelector('p:not(.eyebrow):not(.product-price)')?.textContent ||
     '';
-  const price = card?.querySelector('.product-price')?.textContent || '';
+  const price = priceNode?.textContent || DEFAULT_PRODUCT_PRICE_LABEL;
+  const priceValue = parseProductPrice(price);
   const image =
     card?.querySelector('img')?.currentSrc ||
     card?.querySelector('img')?.src ||
@@ -186,7 +211,8 @@ function getProductFromElement(element) {
     id: safeCartId(`${title}-${href}`),
     title: String(title || '').replace(/\s+/g, ' ').trim(),
     description: String(description || '').replace(/\s+/g, ' ').trim().slice(0, 180),
-    price: String(price || '').replace(/\s+/g, ' ').trim(),
+    price: String(price || DEFAULT_PRODUCT_PRICE_LABEL).replace(/\s+/g, ' ').trim(),
+    priceValue,
     image,
     href,
     quantity: 1,
@@ -199,6 +225,8 @@ function addCartItem(product) {
 
   if (existing) {
     existing.quantity = Math.min(99, Math.max(1, Number(existing.quantity) || 1) + 1);
+    existing.price = product.price;
+    existing.priceValue = product.priceValue;
   } else {
     items.push(product);
   }
@@ -237,9 +265,13 @@ function getCartSummaryText(items = getCartItems()) {
   return [
     'Корзина:',
     ...items.map((item, index) => {
-      const details = [item.description, item.price].filter(Boolean).join(' | ');
-      return `${index + 1}. ${item.title} — ${Math.max(1, Number(item.quantity) || 1)} шт.${details ? ` (${details})` : ''}`;
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+      const unitPrice = getCartItemPriceValue(item);
+      const details = [item.description, formatProductPrice(unitPrice)].filter(Boolean).join(' | ');
+      return `${index + 1}. ${item.title} — ${quantity} шт., ${formatProductPrice(unitPrice * quantity)}${details ? ` (${details})` : ''}`;
     }),
+    '',
+    `Итого: ${formatProductPrice(getCartTotalAmount(items))}`,
   ].join('\n');
 }
 
@@ -284,6 +316,10 @@ function buildCartUi() {
         Комментарий к корзине
         <textarea data-cart-note rows="3" placeholder="Размеры, цвет RAL, город доставки, сроки"></textarea>
       </label>
+      <div class="cart-panel__total" data-cart-total hidden>
+        <span>Итого</span>
+        <strong>0 руб</strong>
+      </div>
       <footer class="cart-panel__footer">
         <button class="cart-clear" type="button" data-cart-clear>Очистить</button>
         <button class="cart-submit" type="button" data-cart-checkout>Запросить расчет</button>
@@ -302,6 +338,7 @@ function buildCartUi() {
     list: drawer.querySelector('[data-cart-list]'),
     empty: drawer.querySelector('[data-cart-empty]'),
     note: drawer.querySelector('[data-cart-note]'),
+    total: drawer.querySelector('[data-cart-total]'),
     toast,
   };
 
@@ -337,28 +374,38 @@ function renderCart() {
   if (!cartElements.list) return;
   const items = getCartItems();
   const total = getCartTotalQuantity(items);
+  const totalAmount = getCartTotalAmount(items);
 
   cartElements.count.textContent = String(total);
   cartElements.button.classList.toggle('has-items', total > 0);
   cartElements.empty.hidden = items.length > 0;
   cartElements.list.hidden = items.length === 0;
+  if (cartElements.total) {
+    cartElements.total.hidden = items.length === 0;
+    cartElements.total.querySelector('strong').textContent = formatProductPrice(totalAmount);
+  }
 
-  cartElements.list.innerHTML = items.map((item) => `
-    <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
-      ${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : ''}
-      <div class="cart-item__body">
-        <h3>${escapeHtml(item.title)}</h3>
-        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
-        ${item.price ? `<strong>${escapeHtml(item.price)}</strong>` : ''}
-        <div class="cart-item__controls">
-          <button type="button" data-cart-minus aria-label="Уменьшить количество">−</button>
-          <span>${Math.max(1, Number(item.quantity) || 1)}</span>
-          <button type="button" data-cart-plus aria-label="Увеличить количество">+</button>
-          <button type="button" data-cart-remove>Удалить</button>
+  cartElements.list.innerHTML = items.map((item) => {
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    const unitPrice = getCartItemPriceValue(item);
+    return `
+      <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
+        ${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : ''}
+        <div class="cart-item__body">
+          <h3>${escapeHtml(item.title)}</h3>
+          ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
+          <strong>${escapeHtml(formatProductPrice(unitPrice))}</strong>
+          <div class="cart-item__subtotal">${escapeHtml(formatProductPrice(unitPrice * quantity))}</div>
+          <div class="cart-item__controls">
+            <button type="button" data-cart-minus aria-label="Уменьшить количество">−</button>
+            <span>${quantity}</span>
+            <button type="button" data-cart-plus aria-label="Увеличить количество">+</button>
+            <button type="button" data-cart-remove>Удалить</button>
+          </div>
         </div>
-      </div>
-    </article>
-  `).join('');
+      </article>
+    `;
+  }).join('');
 
   cartElements.list.querySelectorAll('.cart-item').forEach((itemNode) => {
     const id = itemNode.dataset.cartId;

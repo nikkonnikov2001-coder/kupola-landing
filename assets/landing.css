@@ -546,6 +546,13 @@ button.product-image {
   width: fit-content;
 }
 
+.product-stock {
+  margin-top: -2px;
+  margin-bottom: 10px;
+  background: rgba(10, 168, 58, 0.12);
+  color: #0a7d2a;
+}
+
 .product-info h3 {
   margin-bottom: 8px;
 }

@@ -607,6 +607,7 @@ function enhanceCartButtons() {
   });
 
   document.querySelectorAll('.detail-summary').forEach((summary) => {
+    if (summary.hasAttribute('data-no-cart')) return;
     if (summary.querySelector('.detail-cart-add')) return;
     const requestButton = summary.querySelector('[data-modal="request"]');
     if (!requestButton) return;

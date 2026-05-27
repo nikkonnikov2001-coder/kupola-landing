@@ -624,6 +624,57 @@ function enhanceCartButtons() {
   });
 }
 
+function initMiniCrescentColorSelector() {
+  const switcher = document.querySelector('.mini-color-switch');
+  const cards = Array.from(document.querySelectorAll('[data-mini-product-card]'));
+  if (!switcher || cards.length === 0) return;
+
+  const colorLabels = {
+    gold: 'под золото',
+    silver: 'под серебро',
+  };
+
+  function setMiniCrescentColor(color) {
+    const finish = colorLabels[color] || colorLabels.gold;
+
+    switcher.querySelectorAll('[data-mini-color]').forEach((button) => {
+      const isActive = button.dataset.miniColor === color;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+
+    cards.forEach((card) => {
+      const baseTitle = card.dataset.baseTitle || card.querySelector('h3')?.textContent?.trim() || 'Полумесяц мини';
+      const image = card.querySelector('img');
+      const finishNode = card.querySelector('[data-mini-finish]');
+      const cartButton = card.querySelector('.btn-add-to-cart');
+      const productTitle = `${baseTitle} ${finish}`;
+
+      if (image) {
+        const nextSrc = image.dataset[`${color}Src`] || image.dataset.goldSrc || image.getAttribute('src');
+        const nextWidth = image.dataset[`${color}Width`];
+        const nextHeight = image.dataset[`${color}Height`];
+        image.src = nextSrc;
+        if (nextWidth) image.width = Number(nextWidth);
+        if (nextHeight) image.height = Number(nextHeight);
+        image.alt = `${baseTitle} ${finish} с размерами`;
+      }
+
+      if (finishNode) finishNode.textContent = finish;
+      if (cartButton) {
+        cartButton.dataset.product = productTitle;
+        cartButton.setAttribute('aria-label', `Добавить в корзину: ${productTitle}`);
+      }
+    });
+  }
+
+  switcher.querySelectorAll('[data-mini-color]').forEach((button) => {
+    button.addEventListener('click', () => setMiniCrescentColor(button.dataset.miniColor || 'gold'));
+  });
+
+  setMiniCrescentColor('gold');
+}
+
 document.querySelectorAll('.request-form').forEach((form) => {
   ensureTelegramField(form);
 
@@ -636,6 +687,7 @@ document.querySelectorAll('.request-form').forEach((form) => {
 buildCartUi();
 buildSupportChatUi();
 enhanceCartButtons();
+initMiniCrescentColorSelector();
 renderCart();
 
 document.querySelectorAll('[data-modal="request"]').forEach((button) => {

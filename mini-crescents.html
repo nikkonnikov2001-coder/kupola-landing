@@ -8,7 +8,7 @@
       name="description"
       content="Мини-полумесяцы с шарами диаметром 100, 150 и 200 мм для небольших минаретов, декоративных элементов и интерьерных решений."
     >
-    <link rel="stylesheet" href="assets/landing.css?v=29">
+    <link rel="stylesheet" href="assets/landing.css?v=30">
     <link rel="stylesheet" href="/cms/cms.css?v=3">
   </head>
   <body>
@@ -50,69 +50,73 @@
           <a href="#mini-crescent-150">150 мм</a>
           <a href="#mini-crescent-200">200 мм</a>
           <a href="#mini-crescent-210">210 мм</a>
+          <div class="mini-color-switch" role="group" aria-label="Выбор цвета мини-полумесяцев">
+            <button class="is-active" type="button" data-mini-color="gold" aria-pressed="true">Под золото</button>
+            <button type="button" data-mini-color="silver" aria-pressed="false">Под серебро</button>
+          </div>
         </aside>
 
         <div class="mini-products-grid">
-          <article id="mini-crescent-210" class="product-card mini-product-card">
+          <article id="mini-crescent-210" class="product-card mini-product-card" data-mini-product-card data-base-title="Полумесяц мини 210 мм">
             <div class="product-image">
-              <img src="assets/mini-crescent-210.png" width="504" height="938" alt="Полумесяц мини 210 мм под золото с размерами" loading="eager" decoding="async">
+              <img src="assets/mini-crescent-210.png" data-gold-src="assets/mini-crescent-210.png" data-silver-src="assets/mini-crescent-silver-210.png" data-gold-width="504" data-gold-height="938" data-silver-width="560" data-silver-height="893" width="504" height="938" alt="Полумесяц мини 210 мм под золото с размерами" loading="eager" decoding="async">
             </div>
             <div class="product-info">
               <span class="product-tag">Мини комплекты</span>
               <span class="product-stock">Товар в наличии</span>
               <h3>Полумесяц мини 210 мм</h3>
               <p class="product-price">5 200 руб</p>
-              <p>Комплект с фигурным полумесяцем, шаром и стойкой. Высота 450 мм, покрытие под золото.</p>
+              <p>Комплект с фигурным полумесяцем, шаром и стойкой. Высота 450 мм, покрытие <span data-mini-finish>под золото</span>.</p>
               <div class="product-actions">
-                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 210 мм">В корзину</button>
+                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 210 мм под золото">В корзину</button>
               </div>
             </div>
           </article>
 
-          <article id="mini-crescent-200" class="product-card mini-product-card">
+          <article id="mini-crescent-200" class="product-card mini-product-card" data-mini-product-card data-base-title="Полумесяц мини 200 мм">
             <div class="product-image">
-              <img src="assets/mini-crescent-200.png" width="431" height="853" alt="Полумесяц мини 200 мм под золото с размерами" loading="eager" decoding="async">
+              <img src="assets/mini-crescent-200.png" data-gold-src="assets/mini-crescent-200.png" data-silver-src="assets/mini-crescent-silver-200.png" data-gold-width="431" data-gold-height="853" data-silver-width="434" data-silver-height="893" width="431" height="853" alt="Полумесяц мини 200 мм под золото с размерами" loading="eager" decoding="async">
             </div>
             <div class="product-info">
               <span class="product-tag">Мини комплекты</span>
               <span class="product-stock">Товар в наличии</span>
               <h3>Полумесяц мини 200 мм</h3>
               <p class="product-price">4 900 руб</p>
-              <p>Комплект с полумесяцем, шаром и стойкой. Диаметр 200 мм, высота 450 мм, покрытие под золото.</p>
+              <p>Комплект с полумесяцем, шаром и стойкой. Диаметр 200 мм, высота 450 мм, покрытие <span data-mini-finish>под золото</span>.</p>
               <div class="product-actions">
-                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 200 мм">В корзину</button>
+                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 200 мм под золото">В корзину</button>
               </div>
             </div>
           </article>
 
-          <article id="mini-crescent-150" class="product-card mini-product-card">
+          <article id="mini-crescent-150" class="product-card mini-product-card" data-mini-product-card data-base-title="Полумесяц мини 150 мм">
             <div class="product-image">
-              <img src="assets/mini-crescent-150.png" width="442" height="832" alt="Полумесяц мини 150 мм под золото с размерами" loading="lazy" decoding="async">
+              <img src="assets/mini-crescent-150.png" data-gold-src="assets/mini-crescent-150.png" data-silver-src="assets/mini-crescent-silver-150.png" data-gold-width="442" data-gold-height="832" data-silver-width="460" data-silver-height="778" width="442" height="832" alt="Полумесяц мини 150 мм под золото с размерами" loading="lazy" decoding="async">
             </div>
             <div class="product-info">
               <span class="product-tag">Мини комплекты</span>
               <span class="product-stock">Товар в наличии</span>
               <h3>Полумесяц мини 150 мм</h3>
               <p class="product-price">3 900 руб</p>
-              <p>Комплект с полумесяцем, шаром и стойкой. Диаметр 150 мм, высота 370 мм, покрытие под золото.</p>
+              <p>Комплект с полумесяцем, шаром и стойкой. Диаметр 150 мм, высота 370 мм, покрытие <span data-mini-finish>под золото</span>.</p>
               <div class="product-actions">
-                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 150 мм">В корзину</button>
+                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 150 мм под золото">В корзину</button>
               </div>
             </div>
           </article>
 
-          <article id="mini-crescent-100" class="product-card mini-product-card">
+          <article id="mini-crescent-100" class="product-card mini-product-card" data-mini-product-card data-base-title="Полумесяц мини 100 мм">
             <div class="product-image">
-              <img src="assets/mini-crescent-100.png" width="374" height="835" alt="Полумесяц мини 100 мм под золото с размерами" loading="lazy" decoding="async">
+              <img src="assets/mini-crescent-100.png" data-gold-src="assets/mini-crescent-100.png" data-silver-src="assets/mini-crescent-silver-100.png" data-gold-width="374" data-gold-height="835" data-silver-width="353" data-silver-height="720" width="374" height="835" alt="Полумесяц мини 100 мм под золото с размерами" loading="lazy" decoding="async">
             </div>
             <div class="product-info">
               <span class="product-tag">Мини комплекты</span>
               <span class="product-stock">Товар в наличии</span>
               <h3>Полумесяц мини 100 мм</h3>
               <p class="product-price">3 200 руб</p>
-              <p>Компактный комплект с полумесяцем, шаром и стойкой. Диаметр 100 мм, высота 300 мм, покрытие под золото.</p>
+              <p>Компактный комплект с полумесяцем, шаром и стойкой. Диаметр 100 мм, высота 300 мм, покрытие <span data-mini-finish>под золото</span>.</p>
               <div class="product-actions">
-                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 100 мм">В корзину</button>
+                <button type="button" class="btn-add-to-cart" data-modal="request" data-product="Полумесяц мини 100 мм под золото">В корзину</button>
               </div>
             </div>
           </article>
@@ -266,7 +270,7 @@
       </section>
     </div>
 
-    <script defer src="assets/landing.js?v=23"></script>
+    <script defer src="assets/landing.js?v=24"></script>
     <script src="/cms/cms.js?v=3" defer></script>
   </body>
 </html>

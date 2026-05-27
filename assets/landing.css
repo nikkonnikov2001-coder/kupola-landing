@@ -1634,13 +1634,6 @@ button.product-image {
   font-size: 13px;
 }
 
-.cart-item__subtotal {
-  margin: 0 0 8px;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 900;
-}
-
 .cart-item__controls {
   display: flex;
   align-items: center;

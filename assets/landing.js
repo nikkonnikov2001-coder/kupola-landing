@@ -395,7 +395,6 @@ function renderCart() {
           <h3>${escapeHtml(item.title)}</h3>
           ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
           <strong>${escapeHtml(formatProductPrice(unitPrice))}</strong>
-          <div class="cart-item__subtotal">${escapeHtml(formatProductPrice(unitPrice * quantity))}</div>
           <div class="cart-item__controls">
             <button type="button" data-cart-minus aria-label="Уменьшить количество">−</button>
             <span>${quantity}</span>

@@ -647,8 +647,10 @@ function initMiniCrescentColorSelector() {
       const baseTitle = card.dataset.baseTitle || card.querySelector('h3')?.textContent?.trim() || 'Полумесяц мини';
       const image = card.querySelector('img');
       const finishNode = card.querySelector('[data-mini-finish]');
+      const priceNode = card.querySelector('[data-mini-price]');
       const cartButton = card.querySelector('.btn-add-to-cart');
       const productTitle = `${baseTitle} ${finish}`;
+      const selectedPrice = card.dataset[`${color}Price`] || card.dataset.goldPrice || DEFAULT_PRODUCT_PRICE_LABEL;
 
       if (image) {
         const nextSrc = image.dataset[`${color}Src`] || image.dataset.goldSrc || image.getAttribute('src');
@@ -661,6 +663,7 @@ function initMiniCrescentColorSelector() {
       }
 
       if (finishNode) finishNode.textContent = finish;
+      if (priceNode) priceNode.textContent = selectedPrice;
       if (cartButton) {
         cartButton.dataset.product = productTitle;
         cartButton.setAttribute('aria-label', `Добавить в корзину: ${productTitle}`);

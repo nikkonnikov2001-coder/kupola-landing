@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Личный кабинет | ООО "Профиль"</title>
+    <meta name="description" content="Личный кабинет клиента: профиль, заказы, избранное, финансы, документы, бонусы и обращения в поддержку.">
+    <link rel="stylesheet" href="assets/landing.css?v=33">
+    <link rel="stylesheet" href="/cms/cms.css?v=3">
+  </head>
+  <body>
+    <div class="contact-bar" aria-label="Контакты">
+      <span>ООО "Профиль"</span>
+      <a href="tel:+73472912291">8 (347) 291-22-91</a>
+      <a href="tel:+79272307007">8 927 230-70-07</a>
+      <a href="mailto:gal4444@yandex.ru">gal4444@yandex.ru</a>
+    </div>
+
+    <header class="landing-header">
+      <a class="brand" href="index.html#top" aria-label="На главную">
+        <img class="brand__logo" src="assets/profile-logo.jpg" alt="Профиль" width="547" height="250">
+      </a>
+      <nav class="nav" aria-label="Навигация">
+        <a href="index.html#catalog">Изделия</a>
+        <a href="videos.html">Видео</a>
+        <a href="index.html#process">Этапы</a>
+        <a href="index.html#faq">Вопросы</a>
+        <a href="index.html#contacts">Контакты</a>
+      </nav>
+      <button class="header-cta" type="button" data-modal="request">Получить расчет</button>
+    </header>
+
+    <main class="account-page" id="top">
+      <section class="account-hero">
+        <div>
+          <p class="account-kicker">Клиентский доступ</p>
+          <h1>Личный кабинет</h1>
+          <p>Профиль, заказы, платежи, бонусы, избранное, документы и обращения в одном рабочем пространстве.</p>
+        </div>
+        <div class="account-hero__stats" aria-label="Сводка">
+          <span><strong data-account-stat="orders">0</strong> заказов</span>
+          <span><strong data-account-stat="favorites">0</strong> в избранном</span>
+          <span><strong data-account-stat="bonus">0</strong> бонусов</span>
+        </div>
+      </section>
+
+      <section class="account-auth" data-auth-screen>
+        <div class="account-auth__copy">
+          <p class="account-kicker">Вход</p>
+          <h2>Доступ к данным клиента</h2>
+          <p>Введите телефон или email. Если аккаунта еще нет, кабинет создастся автоматически и сохранит данные в этом браузере.</p>
+          <ul>
+            <li>история заявок и корзины</li>
+            <li>профиль и документы</li>
+            <li>избранное и персональные предложения</li>
+          </ul>
+        </div>
+        <div class="account-auth__panel">
+          <form class="account-form is-active" data-account-login>
+            <h2>Войти</h2>
+            <label>
+              Телефон или email
+              <input name="login" type="text" autocomplete="username" placeholder="+7 999 000-00-00" required>
+            </label>
+            <label>
+              Пароль
+              <input name="password" type="password" autocomplete="current-password" placeholder="Минимум 4 символа" required minlength="4">
+            </label>
+            <button class="button button--primary" type="submit">Войти в кабинет</button>
+            <button class="account-link-button" type="button" data-show-recovery>Восстановить пароль</button>
+            <p class="account-status" role="status" aria-live="polite" data-account-login-status></p>
+          </form>
+
+          <form class="account-form" data-account-recovery hidden>
+            <h2>Восстановление пароля</h2>
+            <label>
+              Телефон или email
+              <input name="recovery" type="text" autocomplete="username" placeholder="Укажите контакт" required>
+            </label>
+            <button class="button button--primary" type="submit">Отправить инструкцию</button>
+            <button class="account-link-button" type="button" data-show-login>Вернуться ко входу</button>
+            <p class="account-status" role="status" aria-live="polite" data-account-recovery-status></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="account-shell" data-account-shell hidden>
+        <aside class="account-sidebar" aria-label="Разделы личного кабинета">
+          <div class="account-user-card">
+            <img data-account-avatar src="assets/profile-logo.jpg" alt="">
+            <div>
+              <strong data-account-name>Клиент</strong>
+              <span data-account-contact>Контакт не указан</span>
+            </div>
+          </div>
+          <nav class="account-tabs">
+            <button type="button" class="is-active" data-account-tab="overview">Обзор</button>
+            <button type="button" data-account-tab="profile">Профиль</button>
+            <button type="button" data-account-tab="orders">История</button>
+            <button type="button" data-account-tab="settings">Настройки</button>
+            <button type="button" data-account-tab="bonuses">Бонусы</button>
+            <button type="button" data-account-tab="support">Поддержка</button>
+            <button type="button" data-account-tab="finance">Финансы</button>
+            <button type="button" data-account-tab="favorites">Избранное</button>
+            <button type="button" data-account-tab="documents">Документы</button>
+          </nav>
+          <button class="account-logout" type="button" data-account-logout>Выйти из аккаунта</button>
+        </aside>
+
+        <div class="account-content">
+          <section class="account-panel is-active" data-account-panel="overview">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Сводка</p>
+                <h2>Что происходит по аккаунту</h2>
+              </div>
+              <button class="button button--secondary" type="button" data-account-tab-link="profile">Редактировать профиль</button>
+            </div>
+            <div class="account-summary-grid">
+              <article>
+                <span>Активные заказы</span>
+                <strong data-overview-orders>0</strong>
+                <p>заявки, расчеты и отгрузки</p>
+              </article>
+              <article>
+                <span>Баланс</span>
+                <strong data-overview-balance>0 руб</strong>
+                <p>платежи и предоплаты</p>
+              </article>
+              <article>
+                <span>Бонусы</span>
+                <strong data-overview-bonus>0</strong>
+                <p>баллы и персональные скидки</p>
+              </article>
+            </div>
+            <div class="account-two-column">
+              <article class="account-card">
+                <h3>Последние действия</h3>
+                <div class="account-list" data-account-activity></div>
+              </article>
+              <article class="account-card">
+                <h3>Быстрые действия</h3>
+                <div class="account-actions">
+                  <a class="button button--secondary" href="index.html#catalog">Открыть каталог</a>
+                  <button class="button button--secondary" type="button" data-account-tab-link="support">Написать в поддержку</button>
+                  <button class="button button--secondary" type="button" data-account-tab-link="documents">Документы</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="account-panel" data-account-panel="profile">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Профиль</p>
+                <h2>Персональные данные</h2>
+              </div>
+            </div>
+            <form class="account-profile-form" data-account-profile>
+              <div class="account-avatar-box">
+                <img data-profile-avatar-preview src="assets/profile-logo.jpg" alt="">
+                <label class="button button--secondary">
+                  Загрузить аватар
+                  <input name="avatar" type="file" accept="image/*" hidden>
+                </label>
+              </div>
+              <label>Имя <input name="name" type="text" placeholder="Имя клиента"></label>
+              <label>Телефон <input name="phone" type="tel" placeholder="+7 999 000-00-00"></label>
+              <label>Email <input name="email" type="email" placeholder="mail@example.ru"></label>
+              <label>Telegram <input name="telegram" type="text" placeholder="@username"></label>
+              <label>Город <input name="city" type="text" placeholder="Уфа"></label>
+              <label>Компания <input name="company" type="text" placeholder="Название организации"></label>
+              <button class="button button--primary" type="submit">Сохранить профиль</button>
+              <p class="account-status" role="status" aria-live="polite" data-profile-status></p>
+            </form>
+
+            <form class="account-password-form" data-account-password>
+              <h3>Смена пароля</h3>
+              <label>Новый пароль <input name="password" type="password" minlength="4" required></label>
+              <label>Повторите пароль <input name="confirm" type="password" minlength="4" required></label>
+              <button class="button button--secondary" type="submit">Обновить пароль</button>
+              <p class="account-status" role="status" aria-live="polite" data-password-status></p>
+            </form>
+          </section>
+
+          <section class="account-panel" data-account-panel="orders">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">История</p>
+                <h2>Заказы, действия и транзакции</h2>
+              </div>
+            </div>
+            <div class="account-table" data-account-orders></div>
+          </section>
+
+          <section class="account-panel" data-account-panel="settings">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Настройки</p>
+                <h2>Уведомления, язык и безопасность</h2>
+              </div>
+            </div>
+            <form class="account-settings" data-account-settings>
+              <label class="account-toggle"><input name="emailNotifications" type="checkbox"> Уведомлять по email</label>
+              <label class="account-toggle"><input name="smsNotifications" type="checkbox"> Уведомлять по телефону</label>
+              <label class="account-toggle"><input name="securityAlerts" type="checkbox"> Сообщать о входах в аккаунт</label>
+              <label>
+                Язык интерфейса
+                <select name="language">
+                  <option value="ru">Русский</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+              <label>
+                Контроль доступа
+                <select name="security">
+                  <option value="basic">Пароль</option>
+                  <option value="strict">Пароль + подтверждение менеджером</option>
+                </select>
+              </label>
+              <button class="button button--primary" type="submit">Сохранить настройки</button>
+              <p class="account-status" role="status" aria-live="polite" data-settings-status></p>
+            </form>
+          </section>
+
+          <section class="account-panel" data-account-panel="bonuses">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Бонусы и акции</p>
+                <h2>Персональные предложения</h2>
+              </div>
+            </div>
+            <div class="account-bonus-card">
+              <span>Доступно баллов</span>
+              <strong data-bonus-points>0</strong>
+              <p>Баллы можно использовать при согласовании следующего заказа с менеджером.</p>
+            </div>
+            <div class="account-offers" data-account-offers></div>
+          </section>
+
+          <section class="account-panel" data-account-panel="support">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Обратная связь</p>
+                <h2>Поддержка и база знаний</h2>
+              </div>
+            </div>
+            <form class="account-support-form" data-account-ticket>
+              <label>
+                Тема обращения
+                <select name="topic">
+                  <option>Расчет изделия</option>
+                  <option>Доставка</option>
+                  <option>Оплата</option>
+                  <option>Документы</option>
+                  <option>Другое</option>
+                </select>
+              </label>
+              <label>
+                Сообщение
+                <textarea name="message" rows="4" placeholder="Опишите вопрос"></textarea>
+              </label>
+              <button class="button button--primary" type="submit">Создать обращение</button>
+              <p class="account-status" role="status" aria-live="polite" data-ticket-status></p>
+            </form>
+            <div class="account-two-column">
+              <article class="account-card">
+                <h3>Мои обращения</h3>
+                <div class="account-list" data-account-tickets></div>
+              </article>
+              <article class="account-card">
+                <h3>База знаний</h3>
+                <div class="account-faq">
+                  <details open><summary>Какие данные нужны для расчета?</summary><p>Фото, чертеж, размеры, покрытие, город доставки и желаемые сроки.</p></details>
+                  <details><summary>Как согласуется заказ?</summary><p>Менеджер уточняет комплектацию, фиксирует цену и передает изделие в производство.</p></details>
+                  <details><summary>Где смотреть статус?</summary><p>Статус заявки отображается в разделе истории и обновляется после обработки менеджером.</p></details>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="account-panel" data-account-panel="finance">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Финансы</p>
+                <h2>Баланс, платежи и выписки</h2>
+              </div>
+            </div>
+            <div class="account-table" data-account-finance></div>
+          </section>
+
+          <section class="account-panel" data-account-panel="favorites">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Избранное</p>
+                <h2>Отложенные товары</h2>
+              </div>
+              <a class="button button--secondary" href="index.html#catalog">Добавить из каталога</a>
+            </div>
+            <div class="account-favorites" data-account-favorites></div>
+          </section>
+
+          <section class="account-panel" data-account-panel="documents">
+            <div class="account-panel__head">
+              <div>
+                <p class="account-kicker">Документы</p>
+                <h2>Договоры, отчеты и сертификаты</h2>
+              </div>
+            </div>
+            <div class="account-documents" data-account-documents></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contacts" class="footer">
+      <div class="footer-content">
+        <div>
+          <a class="brand brand--footer" href="index.html#top" aria-label="На главную">
+            <img class="brand__logo" src="assets/profile-logo.jpg" alt="Профиль" width="547" height="250" loading="lazy" decoding="async">
+          </a>
+          <p>Изготовление минаретов, куполов, полумесяцев и декоративных элементов по проекту.</p>
+        </div>
+        <address>
+          <span>ИНН 027317078322</span>
+          <span>Адрес: 450081, РФ, РБ, г. Уфа, ул. Адмирала Макарова, д. 18/1, кв. 29</span>
+          <a href="tel:+73472912291">8 (347) 291-22-91</a>
+          <a href="tel:+79272307007">8 927 230-70-07</a>
+          <a href="mailto:gal4444@yandex.ru">gal4444@yandex.ru</a>
+        </address>
+        <div class="footer-links">
+          <a href="index.html#catalog">Каталог и цены</a>
+          <a href="index.html#process">Доставка и оплата</a>
+          <a href="/oferta">Оферта и политика конфиденциальности</a>
+        </div>
+      </div>
+      <span class="copyright">© 2026 ООО "Профиль". Все права защищены.</span>
+    </footer>
+
+    <div class="modal" id="requestModal" aria-hidden="true">
+      <div class="modal__backdrop" data-close></div>
+      <section class="modal__card" role="dialog" aria-modal="true" aria-labelledby="requestTitle">
+        <button class="modal__close" type="button" data-close aria-label="Закрыть">×</button>
+        <h2 id="requestTitle">Расчет изделия</h2>
+        <form class="request-form">
+          <label>Имя <input name="name" type="text" placeholder="Иван" required></label>
+          <label>Телефон <input name="phone" type="tel" placeholder="+7 999 000-00-00" required></label>
+          <label>
+            Что нужно рассчитать
+            <select name="product">
+              <option>Минареты</option>
+              <option>Купола сферические</option>
+              <option>Полумесяцы с шарами</option>
+              <option>Полумесяцы мини</option>
+              <option>Узоры и подзоры</option>
+              <option>Листы с покрытием нитрид титана</option>
+            </select>
+          </label>
+          <label>Размер или комментарий <textarea name="message" rows="4" placeholder="Размеры, цвет, город доставки"></textarea></label>
+          <button class="button button--primary" type="submit">Отправить заявку</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+
+    <script defer src="assets/landing.js?v=27"></script>
+    <script defer src="assets/account.js?v=1"></script>
+    <script src="/cms/cms.js?v=3" defer></script>
+  </body>
+</html>

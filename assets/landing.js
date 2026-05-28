@@ -10,6 +10,20 @@ let lastFocused = null;
 let cartElements = {};
 let chatElements = {};
 
+function ensureAccountNavLink() {
+  document.querySelectorAll('.nav').forEach((nav) => {
+    if (nav.querySelector('a[href$="account.html"]')) return;
+
+    const link = document.createElement('a');
+    link.href = 'account.html';
+    link.textContent = '\u041a\u0430\u0431\u0438\u043d\u0435\u0442';
+    if (window.location.pathname.endsWith('/account.html')) {
+      link.setAttribute('aria-current', 'page');
+    }
+    nav.append(link);
+  });
+}
+
 function getFormValue(form, name) {
   return String(new FormData(form).get(name) || '').trim();
 }
@@ -686,6 +700,7 @@ document.querySelectorAll('.request-form').forEach((form) => {
   });
 });
 
+ensureAccountNavLink();
 buildCartUi();
 buildSupportChatUi();
 enhanceCartButtons();

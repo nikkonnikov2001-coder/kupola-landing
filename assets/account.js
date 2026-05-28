@@ -1,18 +1,7 @@
-const ACCOUNT_STORAGE_KEY = 'kupolaAccountV1';
+const ACCOUNT_LOCAL_KEY = 'kupolaAccountLocalV2';
 const ACCOUNT_CART_KEY = 'kupolaCartV1';
 
-const defaultAccount = {
-  session: false,
-  passwordUpdatedAt: '',
-  profile: {
-    name: '',
-    phone: '',
-    email: '',
-    telegram: '',
-    city: '',
-    company: '',
-    avatar: '',
-  },
+const defaultLocal = {
   settings: {
     emailNotifications: true,
     smsNotifications: true,
@@ -68,32 +57,61 @@ const defaultAccount = {
 
 const authScreen = document.querySelector('[data-auth-screen]');
 const accountShell = document.querySelector('[data-account-shell]');
+let currentCustomer = null;
 
-function cloneDefaultAccount() {
-  return JSON.parse(JSON.stringify(defaultAccount));
+function cloneDefaultLocal() {
+  return JSON.parse(JSON.stringify(defaultLocal));
 }
 
-function readAccount() {
+function readLocal() {
   try {
-    const saved = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(ACCOUNT_LOCAL_KEY) || '{}');
     return {
-      ...cloneDefaultAccount(),
+      ...cloneDefaultLocal(),
       ...saved,
-      profile: { ...defaultAccount.profile, ...(saved.profile || {}) },
-      settings: { ...defaultAccount.settings, ...(saved.settings || {}) },
-      orders: Array.isArray(saved.orders) ? saved.orders : defaultAccount.orders,
-      tickets: Array.isArray(saved.tickets) ? saved.tickets : defaultAccount.tickets,
-      favorites: Array.isArray(saved.favorites) ? saved.favorites : defaultAccount.favorites,
-      documents: Array.isArray(saved.documents) ? saved.documents : defaultAccount.documents,
-      finance: Array.isArray(saved.finance) ? saved.finance : defaultAccount.finance,
+      settings: { ...defaultLocal.settings, ...(saved.settings || {}) },
+      orders: Array.isArray(saved.orders) ? saved.orders : defaultLocal.orders,
+      tickets: Array.isArray(saved.tickets) ? saved.tickets : defaultLocal.tickets,
+      favorites: Array.isArray(saved.favorites) ? saved.favorites : defaultLocal.favorites,
+      documents: Array.isArray(saved.documents) ? saved.documents : defaultLocal.documents,
+      finance: Array.isArray(saved.finance) ? saved.finance : defaultLocal.finance,
     };
   } catch {
-    return cloneDefaultAccount();
+    return cloneDefaultLocal();
   }
 }
 
-function saveAccount(account) {
-  localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(account));
+function saveLocal(local) {
+  localStorage.setItem(ACCOUNT_LOCAL_KEY, JSON.stringify(local));
+}
+
+async function customerApi(action, options = {}) {
+  const response = await fetch(`/api/customer?action=${encodeURIComponent(action)}`, {
+    method: options.method || 'GET',
+    credentials: 'same-origin',
+    headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.ok) {
+    const error = new Error(payload.error || payload.message || 'request_failed');
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload;
+}
+
+function getErrorMessage(error) {
+  const message = error.message || '';
+  if (message === 'bad_credentials') return 'Неверный телефон/email или пароль.';
+  if (message === 'customer_exists') return 'Клиент с таким телефоном или email уже зарегистрирован.';
+  if (message === 'name_phone_password_required') return 'Укажите имя, телефон и пароль от 4 символов.';
+  if (message === 'name_phone_required') return 'Укажите имя и телефон.';
+  if (message === 'bad_password') return 'Пароль должен быть не короче 4 символов.';
+  if (error.status === 401) return 'Сессия истекла. Войдите заново.';
+  return 'Не удалось выполнить действие. Попробуйте еще раз.';
 }
 
 function formatMoney(value) {
@@ -125,8 +143,8 @@ function readCartItems() {
   }
 }
 
-function getProfileName(account) {
-  return account.profile.name || account.profile.phone || account.profile.email || 'Клиент';
+function getProfileName(customer) {
+  return customer?.name || customer?.phone || customer?.email || 'Клиент';
 }
 
 function setStatus(selector, message, isError = false) {
@@ -137,13 +155,18 @@ function setStatus(selector, message, isError = false) {
 }
 
 function switchAuth(mode) {
-  const login = document.querySelector('[data-account-login]');
-  const recovery = document.querySelector('[data-account-recovery]');
-  const showRecovery = mode === 'recovery';
-  login.hidden = showRecovery;
-  recovery.hidden = !showRecovery;
-  login.classList.toggle('is-active', !showRecovery);
-  recovery.classList.toggle('is-active', showRecovery);
+  const forms = {
+    login: document.querySelector('[data-account-login]'),
+    register: document.querySelector('[data-account-register]'),
+    recovery: document.querySelector('[data-account-recovery]'),
+  };
+
+  Object.entries(forms).forEach(([name, form]) => {
+    if (!form) return;
+    const active = name === mode;
+    form.hidden = !active;
+    form.classList.toggle('is-active', active);
+  });
 }
 
 function setPanel(name) {
@@ -158,15 +181,18 @@ function setPanel(name) {
   }
 }
 
-function showAuthenticated(account) {
+function showAuthenticated(customer) {
+  currentCustomer = customer;
   authScreen.hidden = true;
   accountShell.hidden = false;
-  renderAccount(account);
+  renderAccount(customer);
 }
 
 function showGuest() {
+  currentCustomer = null;
   authScreen.hidden = false;
   accountShell.hidden = true;
+  switchAuth('login');
 }
 
 function getSyntheticCartOrder(cartItems) {
@@ -186,51 +212,52 @@ function getSyntheticCartOrder(cartItems) {
   };
 }
 
-function renderAccount(account) {
+function renderAccount(customer) {
+  const local = readLocal();
   const cartItems = readCartItems();
   const cartOrder = getSyntheticCartOrder(cartItems);
-  const orders = cartOrder ? [cartOrder, ...account.orders] : account.orders;
-  const favorites = account.favorites;
-  const bonus = Number(account.bonus) || 0;
-  const avatar = account.profile.avatar || 'assets/profile-logo.jpg';
+  const orders = cartOrder ? [cartOrder, ...local.orders] : local.orders;
+  const favorites = local.favorites;
+  const bonus = Number(local.bonus) || 0;
+  const avatar = customer.avatar || 'assets/profile-logo.jpg';
 
   document.querySelectorAll('[data-account-avatar], [data-profile-avatar-preview]').forEach((image) => {
     image.src = avatar;
   });
-  document.querySelector('[data-account-name]').textContent = getProfileName(account);
-  document.querySelector('[data-account-contact]').textContent = account.profile.phone || account.profile.email || 'Контакт не указан';
+  document.querySelector('[data-account-name]').textContent = getProfileName(customer);
+  document.querySelector('[data-account-contact]').textContent = customer.phone || customer.email || 'Контакт не указан';
   document.querySelector('[data-account-stat="orders"]').textContent = String(orders.length);
   document.querySelector('[data-account-stat="favorites"]').textContent = String(favorites.length);
   document.querySelector('[data-account-stat="bonus"]').textContent = String(bonus);
   document.querySelector('[data-overview-orders]').textContent = String(orders.filter((order) => order.status !== 'Завершен').length);
-  document.querySelector('[data-overview-balance]').textContent = formatMoney(account.balance);
+  document.querySelector('[data-overview-balance]').textContent = formatMoney(local.balance);
   document.querySelector('[data-overview-bonus]').textContent = String(bonus);
   document.querySelector('[data-bonus-points]').textContent = String(bonus);
 
-  fillProfileForm(account);
-  fillSettingsForm(account);
-  renderActivity(account, orders);
+  fillProfileForm(customer);
+  fillSettingsForm(local);
+  renderActivity(local, orders);
   renderOrders(orders);
-  renderTickets(account.tickets);
-  renderOffers(account);
-  renderFinance(account.finance);
+  renderTickets(local.tickets);
+  renderOffers();
+  renderFinance(local.finance);
   renderFavorites(favorites, cartItems);
-  renderDocuments(account.documents);
+  renderDocuments(local.documents);
 }
 
-function fillProfileForm(account) {
+function fillProfileForm(customer) {
   const form = document.querySelector('[data-account-profile]');
   if (!form) return;
-  Object.entries(account.profile).forEach(([key, value]) => {
+  ['name', 'phone', 'email', 'telegram', 'city', 'company'].forEach((key) => {
     const field = form.elements[key];
-    if (field && field.type !== 'file') field.value = value || '';
+    if (field) field.value = customer[key] || '';
   });
 }
 
-function fillSettingsForm(account) {
+function fillSettingsForm(local) {
   const form = document.querySelector('[data-account-settings]');
   if (!form) return;
-  Object.entries(account.settings).forEach(([key, value]) => {
+  Object.entries(local.settings).forEach(([key, value]) => {
     const field = form.elements[key];
     if (!field) return;
     if (field.type === 'checkbox') field.checked = Boolean(value);
@@ -238,13 +265,13 @@ function fillSettingsForm(account) {
   });
 }
 
-function renderActivity(account, orders) {
+function renderActivity(local, orders) {
   const activity = [
     ...orders.slice(0, 3).map((order) => ({
       title: order.product,
       meta: `${formatDate(order.date)} · ${order.status}`,
     })),
-    ...account.tickets.slice(0, 2).map((ticket) => ({
+    ...local.tickets.slice(0, 2).map((ticket) => ({
       title: ticket.topic,
       meta: `${formatDate(ticket.date)} · обращение создано`,
     })),
@@ -277,7 +304,7 @@ function renderTickets(tickets) {
     : '<p>Обращений пока нет.</p>';
 }
 
-function renderOffers(account) {
+function renderOffers() {
   const offers = [
     { title: 'Скидка на повторный заказ', text: 'Персональная скидка после первого оплаченного заказа.' },
     { title: 'Быстрый расчет из корзины', text: 'Добавьте товары в корзину и отправьте одну заявку менеджеру.' },
@@ -341,32 +368,84 @@ function renderDocuments(documents) {
   `).join('');
 }
 
+async function refreshSession() {
+  try {
+    const payload = await customerApi('me');
+    if (payload.authenticated && payload.customer) showAuthenticated(payload.customer);
+    else showGuest();
+  } catch {
+    showGuest();
+  }
+}
+
 function initAuth() {
-  const account = readAccount();
-  if (account.session) showAuthenticated(account);
-  else showGuest();
-
   document.querySelector('[data-show-recovery]')?.addEventListener('click', () => switchAuth('recovery'));
-  document.querySelector('[data-show-login]')?.addEventListener('click', () => switchAuth('login'));
+  document.querySelectorAll('[data-show-login]').forEach((button) => {
+    button.addEventListener('click', () => switchAuth('login'));
+  });
+  document.querySelector('[data-show-register]')?.addEventListener('click', () => switchAuth('register'));
 
-  document.querySelector('[data-account-login]')?.addEventListener('submit', (event) => {
+  document.querySelector('[data-account-login]')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const login = String(new FormData(form).get('login') || '').trim();
-    const password = String(new FormData(form).get('password') || '');
-    if (password.length < 4) {
-      setStatus('[data-account-login-status]', 'Пароль должен быть не короче 4 символов.', true);
+    const data = new FormData(form);
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setStatus('[data-account-login-status]', 'Проверяем доступ...');
+
+    try {
+      const payload = await customerApi('login', {
+        method: 'POST',
+        body: {
+          login: String(data.get('login') || '').trim(),
+          password: String(data.get('password') || ''),
+        },
+      });
+      form.reset();
+      setStatus('[data-account-login-status]', '');
+      showAuthenticated(payload.customer);
+    } catch (error) {
+      setStatus('[data-account-login-status]', getErrorMessage(error), true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.querySelector('[data-account-register]')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const password = String(data.get('password') || '');
+    const confirm = String(data.get('confirm') || '');
+
+    if (password.length < 4 || password !== confirm) {
+      setStatus('[data-account-register-status]', 'Пароли должны совпадать и быть не короче 4 символов.', true);
       return;
     }
 
-    const next = readAccount();
-    next.session = true;
-    if (login.includes('@')) next.profile.email = next.profile.email || login;
-    else next.profile.phone = next.profile.phone || login;
-    if (!next.profile.name) next.profile.name = 'Клиент';
-    saveAccount(next);
-    setStatus('[data-account-login-status]', '');
-    showAuthenticated(next);
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setStatus('[data-account-register-status]', 'Создаем аккаунт...');
+
+    try {
+      const payload = await customerApi('register', {
+        method: 'POST',
+        body: {
+          name: String(data.get('name') || '').trim(),
+          phone: String(data.get('phone') || '').trim(),
+          email: String(data.get('email') || '').trim(),
+          telegram: String(data.get('telegram') || '').trim(),
+          password,
+        },
+      });
+      form.reset();
+      setStatus('[data-account-register-status]', '');
+      showAuthenticated(payload.customer);
+    } catch (error) {
+      setStatus('[data-account-register-status]', getErrorMessage(error), true);
+    } finally {
+      button.disabled = false;
+    }
   });
 
   document.querySelector('[data-account-recovery]')?.addEventListener('submit', (event) => {
@@ -374,10 +453,8 @@ function initAuth() {
     setStatus('[data-account-recovery-status]', 'Инструкция по восстановлению подготовлена. Менеджер подтвердит доступ по указанному контакту.');
   });
 
-  document.querySelector('[data-account-logout]')?.addEventListener('click', () => {
-    const next = readAccount();
-    next.session = false;
-    saveAccount(next);
+  document.querySelector('[data-account-logout]')?.addEventListener('click', async () => {
+    await customerApi('logout', { method: 'POST', body: {} }).catch(() => {});
     showGuest();
   });
 }
@@ -400,31 +477,50 @@ function initProfile() {
   form.elements.avatar?.addEventListener('change', (event) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
+    if (file.size > 280000) {
+      setStatus('[data-profile-status]', 'Аватар должен быть меньше 280 КБ.', true);
+      return;
+    }
     const reader = new FileReader();
     reader.addEventListener('load', () => {
-      const account = readAccount();
-      account.profile.avatar = String(reader.result || '');
-      saveAccount(account);
-      renderAccount(account);
+      document.querySelector('[data-profile-avatar-preview]').src = String(reader.result || '');
     });
     reader.readAsDataURL(file);
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(form);
-    const account = readAccount();
-    ['name', 'phone', 'email', 'telegram', 'city', 'company'].forEach((key) => {
-      account.profile[key] = String(data.get(key) || '').trim();
-    });
-    saveAccount(account);
-    renderAccount(account);
-    setStatus('[data-profile-status]', 'Профиль сохранен.');
+    const button = form.querySelector('button[type="submit"]');
+    const avatarPreview = document.querySelector('[data-profile-avatar-preview]');
+    button.disabled = true;
+    setStatus('[data-profile-status]', 'Сохраняем профиль...');
+
+    try {
+      const payload = await customerApi('profile', {
+        method: 'POST',
+        body: {
+          name: String(data.get('name') || '').trim(),
+          phone: String(data.get('phone') || '').trim(),
+          email: String(data.get('email') || '').trim(),
+          telegram: String(data.get('telegram') || '').trim(),
+          city: String(data.get('city') || '').trim(),
+          company: String(data.get('company') || '').trim(),
+          avatar: avatarPreview?.src?.startsWith('data:') ? avatarPreview.src : currentCustomer?.avatar || '',
+        },
+      });
+      setStatus('[data-profile-status]', 'Профиль сохранен.');
+      showAuthenticated(payload.customer);
+    } catch (error) {
+      setStatus('[data-profile-status]', getErrorMessage(error), true);
+    } finally {
+      button.disabled = false;
+    }
   });
 }
 
 function initPassword() {
-  document.querySelector('[data-account-password]')?.addEventListener('submit', (event) => {
+  document.querySelector('[data-account-password]')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const password = String(data.get('password') || '');
@@ -433,11 +529,14 @@ function initPassword() {
       setStatus('[data-password-status]', 'Пароли должны совпадать и быть не короче 4 символов.', true);
       return;
     }
-    const account = readAccount();
-    account.passwordUpdatedAt = new Date().toISOString();
-    saveAccount(account);
-    event.currentTarget.reset();
-    setStatus('[data-password-status]', 'Пароль обновлен для текущего кабинета.');
+
+    try {
+      await customerApi('password', { method: 'POST', body: { password } });
+      event.currentTarget.reset();
+      setStatus('[data-password-status]', 'Пароль обновлен.');
+    } catch (error) {
+      setStatus('[data-password-status]', getErrorMessage(error), true);
+    }
   });
 }
 
@@ -445,15 +544,15 @@ function initSettings() {
   document.querySelector('[data-account-settings]')?.addEventListener('submit', (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const account = readAccount();
-    account.settings = {
+    const local = readLocal();
+    local.settings = {
       emailNotifications: form.elements.emailNotifications.checked,
       smsNotifications: form.elements.smsNotifications.checked,
       securityAlerts: form.elements.securityAlerts.checked,
       language: form.elements.language.value,
       security: form.elements.security.value,
     };
-    saveAccount(account);
+    saveLocal(local);
     setStatus('[data-settings-status]', 'Настройки сохранены.');
   });
 }
@@ -469,15 +568,15 @@ function initTickets() {
       return;
     }
 
-    const account = readAccount();
-    account.tickets.unshift({
+    const local = readLocal();
+    local.tickets.unshift({
       topic: String(data.get('topic') || 'Обращение'),
       message,
       date: new Date().toISOString(),
     });
-    saveAccount(account);
+    saveLocal(local);
     form.reset();
-    renderAccount(account);
+    if (currentCustomer) renderAccount(currentCustomer);
     setStatus('[data-ticket-status]', 'Обращение сохранено в кабинете.');
   });
 }
@@ -488,3 +587,4 @@ initProfile();
 initPassword();
 initSettings();
 initTickets();
+refreshSession();

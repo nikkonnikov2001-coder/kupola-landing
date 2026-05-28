@@ -65,7 +65,7 @@
 
       .admin-toolbar {
         display: grid;
-        grid-template-columns: minmax(190px, 1fr) minmax(150px, .55fr) minmax(150px, .55fr) auto auto;
+        grid-template-columns: minmax(190px, 1fr) minmax(150px, .55fr) minmax(150px, .55fr) auto auto auto;
         gap: 12px;
         align-items: end;
         padding: 16px;
@@ -353,6 +353,7 @@
           </label>
           <button class="button button--primary" type="button" id="loadStats">Обновить</button>
           <button class="button button--secondary" type="button" id="downloadCsv">Скачать CSV</button>
+          <button class="button button--secondary" type="button" id="downloadCustomersCsv">Клиенты CSV</button>
         </div>
 
         <div class="admin-periods" aria-label="Быстрый выбор периода">
@@ -406,6 +407,30 @@
             </table>
           </div>
         </section>
+
+        <section class="admin-section">
+          <div class="section-head">
+            <h2>База клиентов</h2>
+            <span id="customersCount"></span>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Имя</th>
+                  <th>Телефон</th>
+                  <th>Email</th>
+                  <th>Telegram</th>
+                  <th>Город</th>
+                  <th>Компания</th>
+                  <th>Последний вход</th>
+                </tr>
+              </thead>
+              <tbody id="customersBody"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
     </main>
 
@@ -421,6 +446,8 @@
       const chartPeriod = document.querySelector('#chartPeriod');
       const leadsBody = document.querySelector('#leadsBody');
       const leadsCount = document.querySelector('#leadsCount');
+      const customersBody = document.querySelector('#customersBody');
+      const customersCount = document.querySelector('#customersCount');
       const savedToken = localStorage.getItem('leadsAdminToken');
       if (savedToken) tokenInput.value = savedToken;
 
@@ -508,7 +535,8 @@
           metric('Заявок за период', stats.periodTotal, periodLabel),
           metric('Уникальных телефонов', stats.uniquePhones, 'по выбранному периоду'),
           metric('Сегодня', stats.today, 'все заявки за текущий день'),
-          metric('Всего заявок', stats.total, 'за все время')
+          metric('Всего заявок', stats.total, 'за все время'),
+          metric('Клиентов в базе', stats.customersTotal || 0, 'зарегистрированные покупатели')
         );
       }
 
@@ -589,25 +617,74 @@
         });
       }
 
+      function renderCustomers(customers) {
+        customersBody.innerHTML = '';
+        customersCount.textContent = customers.length ? `${customers.length} строк` : 'нет клиентов';
+
+        if (!customers.length) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 8;
+          td.className = 'empty-state';
+          td.textContent = 'За выбранный период регистраций нет';
+          tr.append(td);
+          customersBody.append(tr);
+          return;
+        }
+
+        customers.forEach((customer) => {
+          const tr = document.createElement('tr');
+          tr.append(
+            cell(formatDateTime(customer.created_at)),
+            cell(customer.name),
+            cell(customer.phone),
+            cell(customer.email),
+            cell(customer.telegram),
+            cell(customer.city),
+            cell(customer.company),
+            cell(formatDateTime(customer.last_login_at))
+          );
+          customersBody.append(tr);
+        });
+      }
+
       async function loadDashboard() {
         setStatus('Загружаем данные...');
 
         try {
-          const [statsResponse, leadsResponse] = await Promise.all([
-            fetch(authUrl('/api/stats')),
-            fetch(authUrl('/api/leads', { limit: 500 })),
+          const [statsResult, leadsResult, customersResponse] = await Promise.all([
+            fetch(authUrl('/api/stats')).catch(() => null),
+            fetch(authUrl('/api/leads', { limit: 500 })).catch(() => null),
+            fetch(authUrl('/api/customers', { limit: 500 })),
           ]);
 
-          const statsPayload = await statsResponse.json();
-          const leadsPayload = await leadsResponse.json();
+          const statsPayload = statsResult ? await statsResult.json().catch(() => ({})) : {};
+          const leadsPayload = leadsResult ? await leadsResult.json().catch(() => ({})) : {};
+          const customersPayload = await customersResponse.json();
 
-          if (!statsResponse.ok || !statsPayload.ok) throw new Error(statsPayload.error || 'Ошибка статистики');
-          if (!leadsResponse.ok || !leadsPayload.ok) throw new Error(leadsPayload.error || 'Ошибка заявок');
+          if (!customersResponse.ok || !customersPayload.ok) throw new Error(customersPayload.error || 'Ошибка клиентов');
 
+          if (!statsResult || !statsResult.ok || !statsPayload.ok) {
+            statsPayload.stats = {
+              total: 0,
+              periodTotal: 0,
+              today: 0,
+              uniquePhones: 0,
+              byDay: [],
+              byProduct: [],
+            };
+          }
+
+          if (!leadsResult || !leadsResult.ok || !leadsPayload.ok) {
+            leadsPayload.leads = [];
+          }
+
+          statsPayload.stats.customersTotal = customersPayload.stats.total;
           renderMetrics(statsPayload.stats);
           renderDayChart(statsPayload.stats.byDay);
           renderProducts(statsPayload.stats.byProduct);
           renderLeads(leadsPayload.leads);
+          renderCustomers(customersPayload.customers);
           setStatus('Данные обновлены.');
         } catch (error) {
           setStatus(error.message || 'Не удалось загрузить данные.', true);
@@ -624,6 +701,9 @@
       document.querySelector('#loadStats').addEventListener('click', loadDashboard);
       document.querySelector('#downloadCsv').addEventListener('click', () => {
         window.location.href = authUrl('/api/export', { limit: 1000 });
+      });
+      document.querySelector('#downloadCustomersCsv').addEventListener('click', () => {
+        window.location.href = authUrl('/api/customers', { limit: 2000, format: 'csv' });
       });
 
       setPeriod('30');

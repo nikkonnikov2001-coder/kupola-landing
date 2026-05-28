@@ -67,8 +67,40 @@
               <input name="password" type="password" autocomplete="current-password" placeholder="Минимум 4 символа" required minlength="4">
             </label>
             <button class="button button--primary" type="submit">Войти в кабинет</button>
+            <button class="button button--secondary" type="button" data-show-register>Зарегистрироваться</button>
             <button class="account-link-button" type="button" data-show-recovery>Восстановить пароль</button>
             <p class="account-status" role="status" aria-live="polite" data-account-login-status></p>
+          </form>
+
+          <form class="account-form" data-account-register hidden>
+            <h2>Регистрация</h2>
+            <label>
+              Имя
+              <input name="name" type="text" autocomplete="name" placeholder="Иван" required>
+            </label>
+            <label>
+              Телефон
+              <input name="phone" type="tel" autocomplete="tel" placeholder="+7 999 000-00-00" required>
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" autocomplete="email" placeholder="mail@example.ru">
+            </label>
+            <label>
+              Telegram
+              <input name="telegram" type="text" placeholder="@username">
+            </label>
+            <label>
+              Пароль
+              <input name="password" type="password" autocomplete="new-password" placeholder="Минимум 4 символа" required minlength="4">
+            </label>
+            <label>
+              Повторите пароль
+              <input name="confirm" type="password" autocomplete="new-password" required minlength="4">
+            </label>
+            <button class="button button--primary" type="submit">Создать аккаунт</button>
+            <button class="account-link-button" type="button" data-show-login>Уже есть аккаунт</button>
+            <p class="account-status" role="status" aria-live="polite" data-account-register-status></p>
           </form>
 
           <form class="account-form" data-account-recovery hidden>
@@ -364,7 +396,7 @@
     </div>
 
     <script defer src="assets/landing.js?v=27"></script>
-    <script defer src="assets/account.js?v=1"></script>
+    <script defer src="assets/account.js?v=2"></script>
     <script src="/cms/cms.js?v=3" defer></script>
   </body>
 </html>
